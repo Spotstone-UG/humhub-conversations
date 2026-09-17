@@ -57,6 +57,39 @@
         input.dispatchEvent(new Event('input', {bubbles: true}));
     }
 
+    function submitComposer(composer) {
+        if (composer.dataset.conversationSubmitting === 'true' || editorText(composer) === '') { return; }
+        const button = composer.querySelector('button[type="submit"]');
+        if (!button || button.disabled || button.getAttribute('aria-disabled') === 'true') { return; }
+        // requestSubmit follows the normal browser submit path, including the
+        // existing submit guard and HumHub's RichText synchronization.
+        if (typeof composer.requestSubmit === 'function') {
+            composer.requestSubmit(button);
+        } else {
+            button.click();
+        }
+    }
+
+    function handleComposerShortcut(event) {
+        if (event.key !== 'Enter' || event.isComposing || event.altKey) { return; }
+        const target = event.target;
+        if (!(target instanceof Element)) { return; }
+        const composer = target.closest('.conversation-composer');
+        if (!composer || !target.matches('[contenteditable="true"], textarea[name="ConversationMessage[message]"]')) { return; }
+
+        const sendWithCtrlEnter = composer.dataset.conversationSendWithCtrlEnter === 'true';
+        const modifierPressed = event.ctrlKey || event.metaKey;
+        const shouldSend = sendWithCtrlEnter ? modifierPressed && !event.shiftKey : !modifierPressed && !event.shiftKey;
+        if (!shouldSend && !(modifierPressed && !event.shiftKey)) { return; }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (shouldSend) {
+            if (!event.repeat) { submitComposer(composer); }
+            return;
+        }
+        insertEditorNewline(composer);
+    }
+
     function appendMarkdownQuote(composer, text) {
         const input = editor(composer);
         if (!input) { return; }
@@ -211,22 +244,6 @@
                 // HumHub rich-text integrations submit from this click handler;
                 // the database token remains the authoritative race protection.
                 clearAfterExplicitSend();
-            }, true);
-            composer.addEventListener('keydown', function (event) {
-                if (event.key !== 'Enter' || event.isComposing || event.altKey) { return; }
-                const sendWithCtrlEnter = composer.dataset.conversationSendWithCtrlEnter === 'true';
-                const modifierPressed = event.ctrlKey || event.metaKey;
-                const shouldSend = sendWithCtrlEnter ? modifierPressed && !event.shiftKey : !modifierPressed && !event.shiftKey;
-                if (!shouldSend && !(modifierPressed && !event.shiftKey)) { return; }
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                if (!shouldSend) {
-                    insertEditorNewline(composer);
-                    return;
-                }
-                if (event.repeat || composer.dataset.conversationSubmitting === 'true' || editorText(composer) === '') { return; }
-                const button = composer.querySelector('button[type="submit"]');
-                if (button && !button.disabled && button.getAttribute('aria-disabled') !== 'true') { button.click(); }
             }, true);
             // ProseMirror keeps its own editable element. Polling its visible
             // value makes the local recovery independent from editor internals.
@@ -391,6 +408,8 @@
             anchor.appendChild(button);
             window.setTimeout(function () { button.remove(); }, 5000);
         });
+
+        document.addEventListener('keydown', handleComposerShortcut, true);
 
         const view = document.querySelector('[data-conversation-live-url]');
         if (view) {
