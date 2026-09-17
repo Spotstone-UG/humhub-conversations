@@ -18,6 +18,7 @@ It deliberately has no AI, automatic summaries, content screening or subtopics. 
 - Sender-only message status: persisted messages are `✓✓` (published/available); blue `✓✓` means at least one voluntary read receipt exists. Other people never see those ticks.
 - Sender-only `Gelesen von` modal, including the reading time.
 - Account setting **Lesebestätigungen senden**. When off, a user is never added to receipts and cannot see named receipts for their own messages. Personal unread state still works.
+- **V1.3:** Authors can edit only their own messages. Edited messages remain in place, keep files/reactions and show a discreet `bearbeitet` marker with its time. Deleting messages is intentionally not part of this version.
 
 ## Architecture
 
@@ -66,6 +67,7 @@ Target test location: `testcommunity.selbstsein.events`. Production is explicitl
 5. **Receipts on:** B leaves receipts enabled and opens A's message. Only A sees its ticks; A's blue ticks open B and the timestamp. B never sees ticks on A's message.
 6. **Receipts off:** B disables the account option, receives new messages and opens them. Confirm unread state still advances, B is absent from `Gelesen von`, and B sees no named receipt list on their own messages.
 7. **Regression:** Disable the module for the Space and verify no data is deleted. Re-enable it and verify existing conversations remain accessible.
+8. **Editing:** Author A edits one of their messages. Confirm the edit dialog, the changed content and `bearbeitet` marker. Confirm B and Space managers do not receive an edit link and cannot call the edit route successfully.
 
 ## Developer checks
 

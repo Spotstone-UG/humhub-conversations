@@ -9,6 +9,7 @@ $required = [
     'config.php',
     'module.json',
     'migrations/m260917_150000_initial.php',
+    'migrations/m260917_160000_add_message_edit_marker.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
     'models/ConversationUserState.php',
@@ -50,6 +51,15 @@ foreach (['getContentClasses', 'Conversation::class'] as $requiredToken) {
 foreach (['WallStreamEntryWidget', 'ConversationForm::class', 'createFormSortOrder = 0'] as $requiredToken) {
     if (!str_contains($card, $requiredToken)) {
         fwrite(STDERR, "Conversation is not configured as the primary stream composer: $requiredToken\n");
+        exit(1);
+    }
+}
+
+$messageService = (string) file_get_contents($root . '/services/ConversationService.php');
+$messageController = (string) file_get_contents($root . '/controllers/ConversationController.php');
+foreach (['editMessage', 'created_by', 'edited_at'] as $requiredToken) {
+    if (!str_contains($messageService . $messageController, $requiredToken)) {
+        fwrite(STDERR, "Message editing protection missing: $requiredToken\n");
         exit(1);
     }
 }

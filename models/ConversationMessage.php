@@ -37,8 +37,9 @@ final class ConversationMessage extends ContentActiveRecord
     {
         parent::afterSave($insert, $changedAttributes);
 
+        RichText::postProcess($this->message, $this, 'message');
+
         if ($insert) {
-            RichText::postProcess($this->message, $this, 'message');
             Conversation::updateAll(['last_message_at' => $this->content->created_at], ['id' => $this->conversation_id]);
         }
     }
@@ -68,4 +69,3 @@ final class ConversationMessage extends ContentActiveRecord
         return Url::to(['/conversations/conversation/view', 'id' => $this->conversation_id, 'contentContainer' => $this->content->container]);
     }
 }
-

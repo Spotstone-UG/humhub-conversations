@@ -114,13 +114,41 @@ final class ConversationController extends ContentContainerController
         return $this->redirect($conversation->url . '#conversation-message-' . $createdMessage->id);
     }
 
+    /**
+     * Opens the edit dialog for an author's own message and persists the
+     * changed text with an auditable edited_at marker.
+     */
+    public function actionEditMessage(int $conversationId, int $messageId)
+    {
+        $conversation = $this->findConversation($conversationId);
+        $message = $this->findMessage($conversation, $messageId);
+
+        if ((int) $message->content->created_by !== (int) Yii::$app->user->id) {
+            $this->forbidden();
+        }
+
+        if (Yii::$app->request->isPost) {
+            $this->forcePostRequest();
+            $message->load(Yii::$app->request->post());
+
+            if ((new ConversationService())->editMessage($conversation, $message)) {
+                return $this->redirect($conversation->url . '#conversation-message-' . $message->id);
+            }
+
+            Yii::$app->response->statusCode = 400;
+        }
+
+        return $this->renderAjax('edit-message', [
+            'conversation' => $conversation,
+            'message' => $message,
+            'contentContainer' => $this->contentContainer,
+        ]);
+    }
+
     public function actionReceipts(int $conversationId, int $messageId): string
     {
         $conversation = $this->findConversation($conversationId);
-        $message = ConversationMessage::find()->where(['id' => $messageId, 'conversation_id' => $conversation->id])->one();
-        if ($message === null) {
-            throw new NotFoundHttpException();
-        }
+        $message = $this->findMessage($conversation, $messageId);
 
         $receipts = (new ConversationStateService())->visibleReadReceipts($message, Yii::$app->user->identity);
         return $this->renderAjax('receipts', ['message' => $message, 'receipts' => $receipts]);
@@ -137,5 +165,17 @@ final class ConversationController extends ContentContainerController
             throw new NotFoundHttpException();
         }
         return $conversation;
+    }
+
+    private function findMessage(Conversation $conversation, int $messageId): ConversationMessage
+    {
+        $message = ConversationMessage::find()
+            ->where(['id' => $messageId, 'conversation_id' => $conversation->id])
+            ->one();
+        if ($message === null) {
+            throw new NotFoundHttpException();
+        }
+
+        return $message;
     }
 }

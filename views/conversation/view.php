@@ -50,7 +50,17 @@ $uploads = Upload::withName('fileList[]');
                 </div>
                 <div class="conversation-message__actions">
                     <?php if (Yii::$app->getModule('like') !== null): ?><?= LikeLink::widget(['object' => $message]) ?><?php endif; ?>
+                    <?php if ($isOwn): ?>
+                        <?= Html::a('Bearbeiten', '#', [
+                            'class' => 'conversation-message__edit',
+                            'data-action-click' => 'ui.modal.load',
+                            'data-action-url' => $contentContainer->createUrl('/conversations/conversation/edit-message', ['conversationId' => $conversation->id, 'messageId' => $message->id]),
+                        ]) ?>
+                    <?php endif; ?>
                 </div>
+                <?php if ($message->edited_at !== null): ?>
+                    <div class="conversation-message__edited" title="Bearbeitet am <?= Html::encode(Yii::$app->formatter->asDatetime($message->edited_at, 'short')) ?>">bearbeitet</div>
+                <?php endif; ?>
             </article>
         <?php endforeach; ?>
     </div>

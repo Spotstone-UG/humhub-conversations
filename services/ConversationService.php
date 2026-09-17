@@ -48,5 +48,29 @@ final class ConversationService
             return $message;
         });
     }
-}
 
+    /**
+     * Edits only the current user's own message. Space managers deliberately
+     * cannot impersonate an author through this endpoint.
+     */
+    public function editMessage(Conversation $conversation, ConversationMessage $message): bool
+    {
+        if (
+            (int) $message->conversation_id !== (int) $conversation->id
+            || (int) $message->content->created_by !== (int) Yii::$app->user->id
+        ) {
+            throw new \yii\web\ForbiddenHttpException();
+        }
+
+        if (!$message->isAttributeChanged('message')) {
+            return true;
+        }
+
+        $message->edited_at = date('Y-m-d H:i:s');
+        if ($message->save()) {
+            return true;
+        }
+
+        return false;
+    }
+}
