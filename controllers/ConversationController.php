@@ -10,6 +10,8 @@ use humhub\modules\conversations\models\ConversationMessage;
 use humhub\modules\conversations\services\ConversationService;
 use humhub\modules\conversations\services\ConversationReactionService;
 use humhub\modules\conversations\services\ConversationStateService;
+use humhub\modules\conversations\services\ConversationConsensusService;
+use humhub\modules\conversations\models\ConversationConsensusProposal;
 use humhub\modules\space\models\Space;
 use humhub\modules\conversations\widgets\ConversationForm;
 use humhub\modules\conversations\services\EmojiPaletteService;
@@ -123,6 +125,7 @@ final class ConversationController extends ContentContainerController
             'firstUnreadMessageId' => $firstUnreadMessageId,
             'subconversationsByOrigin' => $subconversationsByOrigin,
             'contentContainer' => $this->contentContainer,
+            'consensus' => (new ConversationConsensusService())->currentStatus($conversation, Yii::$app->user->identity),
         ]);
     }
 
@@ -131,7 +134,7 @@ final class ConversationController extends ContentContainerController
         $this->forcePostRequest();
         $conversation = $this->findConversation($conversationId);
         if ($conversation->isClosed) {
-            throw new \yii\web\ForbiddenHttpException('Diese Conversation ist beendet.');
+            throw new \yii\web\ForbiddenHttpException('Dieser Chat ist beendet.');
         }
         $message = new ConversationMessage($conversation->content->container);
         $message->load(Yii::$app->request->post());
@@ -253,6 +256,40 @@ final class ConversationController extends ContentContainerController
         (new ConversationService())->reopen($conversation);
 
         return $this->redirect($conversation->url);
+    }
+
+    public function actionConsensus(int $conversationId, int $proposalId)
+    {
+        $this->forcePostRequest();
+        $conversation = $this->findConversation($conversationId);
+        $proposal = ConversationConsensusProposal::findOne(['id' => $proposalId, 'conversation_id' => $conversation->id]);
+        if ($proposal === null) {
+            throw new NotFoundHttpException();
+        }
+        (new ConversationConsensusService())->respond($conversation, $proposal, Yii::$app->user->identity, (string) Yii::$app->request->post('decision'));
+
+        return $this->redirect($conversation->url . '#conversation-consensus');
+    }
+
+    public function actionAlternativeProposal(int $conversationId, int $proposalId)
+    {
+        $conversation = $this->findConversation($conversationId);
+        $proposal = ConversationConsensusProposal::findOne(['id' => $proposalId, 'conversation_id' => $conversation->id]);
+        if ($proposal === null) {
+            throw new NotFoundHttpException();
+        }
+
+        if (Yii::$app->request->isPost) {
+            $this->forcePostRequest();
+            (new ConversationConsensusService())->proposeAlternative($conversation, $proposal, Yii::$app->user->identity, (string) Yii::$app->request->post('body'));
+            return $this->redirect($conversation->url . '#conversation-consensus');
+        }
+
+        return $this->renderAjax('alternative-proposal', [
+            'conversation' => $conversation,
+            'proposal' => $proposal,
+            'contentContainer' => $this->contentContainer,
+        ]);
     }
 
     /** Opens the complete HumHub Unicode emoji catalogue for a message. */

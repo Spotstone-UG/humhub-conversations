@@ -7,6 +7,7 @@ use humhub\modules\conversations\assets\ConversationAsset;
 use humhub\modules\conversations\models\ConversationUserSetting;
 use humhub\modules\conversations\services\ConversationStateService;
 use humhub\modules\conversations\services\ConversationReactionService;
+use humhub\modules\conversations\models\ConversationConsensusResponse;
 use humhub\modules\file\widgets\ShowFiles;
 use humhub\modules\file\widgets\Upload;
 
@@ -48,15 +49,51 @@ $avatar = static function ($user): string {
         <?php if ($conversation->summary): ?><p><?= Html::encode($conversation->summary) ?></p><?php endif; ?>
         <div class="conversation-view__lifecycle">
             <?php if ($conversation->isClosed): ?>
-                <span class="conversation-status conversation-status--closed">Beendet</span>
+                <span class="conversation-status conversation-status--closed">Beendet<?= $conversation->closedBy !== null ? ' von ' . Html::encode($conversation->closedBy->displayName) : '' ?></span>
             <?php endif; ?>
         </div>
     </header>
 
     <?php if ($conversation->isClosed): ?>
-        <section class="conversation-outcome" aria-label="Gesprächsergebnis">
+        <section class="conversation-outcome" id="conversation-consensus" aria-label="Gesprächsergebnis und Konsens">
             <span class="conversation-outcome__label">Gesprächsergebnis</span>
             <p><?= $conversation->outcome !== '' ? nl2br(Html::encode($conversation->outcome)) : 'Für diese Unterhaltung wurde kein Ergebnis festgehalten.' ?></p>
+            <?php if ($consensus['proposal'] !== null): ?>
+                <div class="conversation-consensus conversation-consensus--<?= Html::encode($consensus['status']) ?>">
+                    <strong>Konsens</strong>
+                    <?php if ($consensus['proposal']->supersedes_proposal_id !== null): ?>
+                        <span class="conversation-consensus__version">Aktuelle Fassung: Alternativvorschlag</span>
+                    <?php endif; ?>
+                    <?php if ($consensus['status'] === 'confirmed_all'): ?>
+                        <p>Bestätigt: Alle Teilnehmenden haben zugestimmt.</p>
+                    <?php elseif ($consensus['status'] === 'confirmed_timeout'): ?>
+                        <p>Bestätigt: Nach 14 Tagen gab es keine schwerwiegenden Widersprüche.</p>
+                    <?php elseif ($consensus['status'] === 'objection'): ?>
+                        <p>Es gibt einen Widerspruch. Ein Alternativvorschlag kann eine neue Konsensrunde starten.</p>
+                    <?php else: ?>
+                        <p><?= $consensus['consentCount'] ?> von <?= count($consensus['participants']) ?> Teilnehmenden haben zugestimmt. Rückmeldungen sind bis <?= Yii::$app->formatter->asDate($consensus['deadline'], 'long') ?> möglich.</p>
+                    <?php endif; ?>
+                    <?php if ($consensus['canRespond']): ?>
+                        <div class="conversation-consensus__actions">
+                            <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/consensus', ['conversationId' => $conversation->id, 'proposalId' => $consensus['proposal']->id]), 'post') ?>
+                                <?= Html::hiddenInput('decision', ConversationConsensusResponse::DECISION_CONSENT) ?>
+                                <?= Html::submitButton(($consensus['responses'][(int) $currentUser->id] ?? null) === ConversationConsensusResponse::DECISION_CONSENT ? 'Zustimmung erteilt' : 'Zustimmen', ['class' => 'btn btn-success btn-sm']) ?>
+                            <?= Html::endForm() ?>
+                            <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/consensus', ['conversationId' => $conversation->id, 'proposalId' => $consensus['proposal']->id]), 'post') ?>
+                                <?= Html::hiddenInput('decision', ConversationConsensusResponse::DECISION_OBJECTION) ?>
+                                <?= Html::submitButton('Widerspruch', ['class' => 'btn btn-default btn-sm']) ?>
+                            <?= Html::endForm() ?>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($consensus['canProposeAlternative']): ?>
+                        <?= Html::a('Alternativvorschlag machen', '#', [
+                            'class' => 'conversation-consensus__alternative',
+                            'data-action-click' => 'ui.modal.load',
+                            'data-action-url' => $contentContainer->createUrl('/conversations/conversation/alternative-proposal', ['conversationId' => $conversation->id, 'proposalId' => $consensus['proposal']->id]),
+                        ]) ?>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
             <?php if ($conversation->content->canEdit()): ?>
                 <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/reopen', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-outcome__reopen']) ?>
                     <?= Html::submitButton('Unterhaltung wieder öffnen', ['class' => 'btn btn-default btn-sm']) ?>
@@ -67,7 +104,7 @@ $avatar = static function ($user): string {
 
     <div class="conversation-view__messages" aria-live="polite">
         <?php if ($messages === []): ?>
-            <p class="text-body-secondary text-center">Noch keine Nachrichten. Starte die Conversation.</p>
+            <p class="text-body-secondary text-center">Noch keine Nachrichten. Starte den Chat.</p>
         <?php endif; ?>
         <?php foreach ($messages as $message): ?>
             <?php if ($firstUnreadMessageId !== null && $message->id === $firstUnreadMessageId && $unreadCount > 0): ?>

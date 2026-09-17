@@ -18,12 +18,12 @@ final class Module extends ContentContainerModule
 
     public function getContentContainerName(ContentContainerActiveRecord $container): string
     {
-        return 'Conversations';
+        return 'Chats';
     }
 
     public function getContentContainerDescription(ContentContainerActiveRecord $container): string
     {
-        return 'Kompakte Conversation-Karten im Stream mit einer eigenen chatartigen Gesprächsansicht.';
+        return 'Kompakte Chat-Karten im Stream mit einer eigenen Gesprächsansicht.';
     }
 
     /**

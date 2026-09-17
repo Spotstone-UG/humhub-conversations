@@ -8,17 +8,17 @@ ConversationAsset::register($this);
 ?>
 <div class="panel panel-default conversation-index">
     <div class="panel-heading d-flex justify-content-between align-items-center">
-        <strong>Conversations</strong>
-        <?= Html::a('Neue Conversation', $contentContainer->createUrl('/conversations/conversation/create'), ['class' => 'btn btn-primary btn-sm']) ?>
+        <strong>Chats</strong>
+        <?= Html::a('Neuer Chat', $contentContainer->createUrl('/conversations/conversation/create'), ['class' => 'btn btn-primary btn-sm']) ?>
     </div>
     <div class="panel-body">
         <?php if ($conversations === []): ?>
-            <p class="text-body-secondary mb-0">Noch keine Conversations in diesem Space.</p>
+            <p class="text-body-secondary mb-0">Noch keine Chats in diesem Space.</p>
         <?php endif; ?>
         <?php if ($conversations !== []): ?>
-            <div class="conversation-overview" role="table" aria-label="Konversationsübersicht">
+            <div class="conversation-overview" role="table" aria-label="Chatübersicht">
                 <div class="conversation-overview__head" role="row">
-                    <span>Unterhaltung</span><span>Status</span><span>Letzte Aktivität</span><span>Ergebnis</span>
+                    <span>Chat</span><span>Status</span><span>Letzte Aktivität</span><span>Ergebnis</span>
                 </div>
                 <?php foreach ($conversations as $conversation): ?>
                     <article class="conversation-overview__row <?= $conversation->parent_conversation_id !== null ? 'conversation-overview__row--sub' : 'conversation-overview__row--parent' ?>" role="row">

@@ -29,6 +29,7 @@ final class Conversation extends ContentActiveRecord
             [['summary'], 'string', 'max' => 1000],
             [['last_message_at'], 'safe'],
             [['parent_conversation_id', 'origin_message_id'], 'integer', 'min' => 1],
+            [['closed_by'], 'integer', 'min' => 1],
             [['closed_at'], 'safe'],
             [['outcome'], 'string', 'max' => 4000],
         ];
@@ -36,7 +37,7 @@ final class Conversation extends ContentActiveRecord
 
     public function getContentName(): string
     {
-        return Yii::t('ConversationsModule.base', 'Conversation');
+        return Yii::t('ConversationsModule.base', 'Chat');
     }
 
     public function getContentDescription(): string
@@ -78,6 +79,17 @@ final class Conversation extends ContentActiveRecord
     public function getIsClosed(): bool
     {
         return $this->closed_at !== null;
+    }
+
+    public function getClosedBy(): ActiveQuery
+    {
+        return $this->hasOne(\humhub\modules\user\models\User::class, ['id' => 'closed_by']);
+    }
+
+    public function getConsensusProposals(): ActiveQuery
+    {
+        return $this->hasMany(ConversationConsensusProposal::class, ['conversation_id' => 'id'])
+            ->orderBy(['conversation_consensus_proposal.created_at' => SORT_DESC, 'conversation_consensus_proposal.id' => SORT_DESC]);
     }
 
     public function beforeSave($insert)

@@ -68,7 +68,7 @@ final class ConversationMessage extends ContentActiveRecord
 
     public function getContentName(): string
     {
-        return Yii::t('ConversationsModule.base', 'Conversation message');
+        return Yii::t('ConversationsModule.base', 'Chat-Nachricht');
     }
 
     public function getContentDescription(): string

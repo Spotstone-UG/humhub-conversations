@@ -24,5 +24,5 @@ use humhub\widgets\form\ActiveForm;
 <?= WallCreateContentFormFooter::widget([
     'contentContainer' => $conversation->content->container,
     'wallCreateContentForm' => $wallCreateContentForm,
-    'submitButtonText' => Yii::t('ConversationsModule.base', 'Conversation starten'),
+    'submitButtonText' => Yii::t('ConversationsModule.base', 'Chat starten'),
 ]) ?>

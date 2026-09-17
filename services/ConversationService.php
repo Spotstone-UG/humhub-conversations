@@ -24,7 +24,7 @@ final class ConversationService
         $conversation->content->visibility = $container->getDefaultContentVisibility();
 
         if (!$conversation->save()) {
-            throw new BadRequestHttpException('Die Conversation konnte nicht gespeichert werden.');
+            throw new BadRequestHttpException('Der Chat konnte nicht gespeichert werden.');
         }
 
         return $conversation;
@@ -145,10 +145,8 @@ final class ConversationService
             throw new \yii\web\ForbiddenHttpException();
         }
 
-        $conversation->outcome = $outcome;
-        $conversation->closed_at = date('Y-m-d H:i:s');
-
-        return $conversation->save();
+        (new ConversationConsensusService())->start($conversation, $outcome, Yii::$app->user->identity);
+        return true;
     }
 
     public function reopen(Conversation $conversation): bool
