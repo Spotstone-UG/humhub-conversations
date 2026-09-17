@@ -307,7 +307,10 @@ $avatar = static function ($user): string {
                             </ul>
                         </span>
                     <?php endif; ?>
-                    <?= Html::submitButton('Senden', ['class' => 'btn btn-primary']) ?>
+                    <span class="conversation-composer__send">
+                        <span class="conversation-composer__send-hint">per Strg+Enter senden</span>
+                        <?= Html::submitButton('Senden', ['class' => 'btn btn-primary']) ?>
+                    </span>
                 </div>
             </div>
         <?= Html::endForm() ?>

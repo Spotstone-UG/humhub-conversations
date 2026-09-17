@@ -139,6 +139,8 @@
 .conversation-new-message-notice { bottom: 1.25rem; left: 50%; position: fixed; transform: translateX(-50%); z-index: 1100; }
 .conversation-composer__controls { align-items: center; display: flex; justify-content: space-between; margin-top: .45rem; }
 .conversation-composer__actions { align-items: center; display: inline-flex; gap: .35rem; }
+.conversation-composer__send { align-items: center; display: inline-flex; flex-direction: column; gap: .12rem; }
+.conversation-composer__send-hint { color: var(--bs-secondary-color, #667085); font-size: .66rem; line-height: 1; white-space: nowrap; }
 .conversation-composer__conversation-menu { position: relative; }
 .conversation-composer__menu-trigger { align-items: center; border-radius: .4rem; color: var(--bs-secondary-color, #667085); display: inline-flex; font-size: 1.15rem; height: 2.1rem; justify-content: center; text-decoration: none; width: 2rem; }
 .conversation-composer__menu-trigger:hover, .conversation-composer__conversation-menu.show .conversation-composer__menu-trigger { background: var(--bs-secondary-bg, #f3f4f6); color: #1d4f48; }

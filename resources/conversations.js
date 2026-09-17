@@ -172,6 +172,17 @@
                 // the database token remains the authoritative race protection.
                 clearAfterExplicitSend();
             }, true);
+            composer.addEventListener('keydown', function (event) {
+                // Keep Enter for Markdown paragraphs. Ctrl/Cmd+Enter follows
+                // the familiar chat shortcut and uses the exact same button
+                // path as a mouse click, including the duplicate-send guard.
+                if (event.key !== 'Enter' || event.isComposing || (!event.ctrlKey && !event.metaKey)) { return; }
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                if (event.repeat || composer.dataset.conversationSubmitting === 'true' || editorText(composer) === '') { return; }
+                const button = composer.querySelector('button[type="submit"]');
+                if (button && !button.disabled && button.getAttribute('aria-disabled') !== 'true') { button.click(); }
+            }, true);
             // ProseMirror keeps its own editable element. Polling its visible
             // value makes the local recovery independent from editor internals.
             if (key) {

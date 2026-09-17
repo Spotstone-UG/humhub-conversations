@@ -199,7 +199,7 @@ $idempotency = (string) file_get_contents($root . '/services/ConversationService
     . (string) file_get_contents($root . '/controllers/ConversationController.php')
     . (string) file_get_contents($root . '/views/conversation/view.php')
     . $browserScript;
-foreach (['ConversationMessageSubmission', 'conversationSubmissionToken', 'conversationSubmitting', 'findSubmittedMessage'] as $requiredToken) {
+foreach (['ConversationMessageSubmission', 'conversationSubmissionToken', 'conversationSubmitting', 'findSubmittedMessage', 'Ctrl/Cmd+Enter', 'conversation-composer__send-hint'] as $requiredToken) {
     if (!str_contains($idempotency, $requiredToken)) {
         fwrite(STDERR, "Message idempotency protection missing: $requiredToken\n");
         exit(1);
