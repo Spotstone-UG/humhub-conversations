@@ -43,7 +43,7 @@ $uploads = Upload::withName('fileList[]');
                         <?php $receipts = $stateService->visibleReadReceipts($message, $currentUser); ?>
                         <?php if ($receipts !== []): ?>
                             <?= Html::a('✓✓', $contentContainer->createUrl('/conversations/conversation/receipts', ['conversationId' => $conversation->id, 'messageId' => $message->id]), ['class' => 'conversation-message__status conversation-message__status--read', 'title' => 'Von mindestens einer Person gelesen', 'data-bs-target' => '#globalModal']) ?>
-                        <?php elseif (ConversationUserSetting::readReceiptsEnabled($currentUser)): ?>
+                        <?php else: ?>
                             <span class="conversation-message__status" title="Veröffentlicht und verfügbar">✓✓</span>
                         <?php endif; ?>
                     <?php endif; ?>
