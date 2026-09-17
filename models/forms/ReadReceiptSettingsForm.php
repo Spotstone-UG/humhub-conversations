@@ -8,10 +8,12 @@ use yii\base\Model;
 final class ReadReceiptSettingsForm extends Model
 {
     public bool $readReceiptsEnabled = true;
+    public bool $sendWithCtrlEnter = false;
 
     public function rules(): array
     {
-        return [['readReceiptsEnabled', 'boolean']];
+        return [
+            [['readReceiptsEnabled', 'sendWithCtrlEnter'], 'boolean'],
+        ];
     }
 }
-

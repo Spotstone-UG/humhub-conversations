@@ -18,7 +18,7 @@ final class ConversationUserSetting extends ActiveRecord
     {
         return [
             [['user_id'], 'required'],
-            [['user_id', 'read_receipts_enabled'], 'integer'],
+            [['user_id', 'read_receipts_enabled', 'send_with_ctrl_enter'], 'integer'],
         ];
     }
 
@@ -28,9 +28,14 @@ final class ConversationUserSetting extends ActiveRecord
         return $setting === null || (bool) $setting->read_receipts_enabled;
     }
 
+    public static function sendWithCtrlEnter(User $user): bool
+    {
+        $setting = static::findOne(['user_id' => $user->id]);
+        return $setting !== null && (bool) $setting->send_with_ctrl_enter;
+    }
+
     public function getUser(): ActiveQuery
     {
         return $this->hasOne(User::class, ['id' => 'user_id']);
     }
 }
-

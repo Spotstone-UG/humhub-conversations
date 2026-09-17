@@ -20,6 +20,7 @@ $stateService = new ConversationStateService();
 $currentUser = Yii::$app->user->identity;
 $uploads = Upload::withName('fileList[]');
 $composerMessage = new \humhub\modules\conversations\models\ConversationMessage($contentContainer);
+$sendWithCtrlEnter = ConversationUserSetting::sendWithCtrlEnter($currentUser);
 $reactionSummaries = (new ConversationReactionService())->summaries($messages, $currentUser);
 $realtimeConnection = (new ConversationRealtimeService())->socketConnection($conversation, $currentUser);
 $interestTooltip = $isInterested
@@ -278,7 +279,7 @@ $avatar = static function ($user): string {
     </div>
 
     <?php if (!$conversation->isClosed): ?>
-        <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/message', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-composer', 'id' => 'conversation-composer', 'data-conversation-draft-key' => 'conversation-draft-' . (int) $conversation->id]) ?>
+        <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/message', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-composer', 'id' => 'conversation-composer', 'data-conversation-draft-key' => 'conversation-draft-' . (int) $conversation->id, 'data-conversation-send-with-ctrl-enter' => $sendWithCtrlEnter ? 'true' : 'false']) ?>
             <div class="conversation-composer__reply" hidden data-conversation-reply-preview></div>
             <?= Html::hiddenInput('ConversationMessage[reply_to_message_id]', '', ['data-conversation-reply-input' => true]) ?>
             <?= Html::hiddenInput('conversationSubmissionToken', Yii::$app->security->generateRandomString(32), ['data-conversation-submission-token' => true]) ?>
@@ -307,12 +308,32 @@ $avatar = static function ($user): string {
                             </ul>
                         </span>
                     <?php endif; ?>
-                    <span class="conversation-composer__send">
-                        <span class="conversation-composer__send-hint">per Strg+Enter senden</span>
-                        <?= Html::submitButton('Senden', ['class' => 'btn btn-primary']) ?>
+                    <span class="conversation-composer__send-group">
+                        <span class="conversation-composer__send">
+                            <span class="conversation-composer__send-hint">per <?= $sendWithCtrlEnter ? 'STRG+Enter' : 'Enter' ?> senden</span>
+                            <?= Html::submitButton('Senden', ['class' => 'btn btn-primary']) ?>
+                        </span>
+                        <span class="dropdown conversation-composer__shortcut-menu">
+                            <?= Html::a('⌄', '#', ['class' => 'conversation-composer__shortcut-menu-trigger', 'data-bs-toggle' => 'dropdown', 'role' => 'button', 'aria-label' => 'Tastatur-Einstellung', 'title' => 'Tastatur-Einstellung']) ?>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><h6 class="dropdown-header">Senden mit</h6></li>
+                                <li><?= Html::submitButton('Enter', ['class' => 'dropdown-item' . (!$sendWithCtrlEnter ? ' active' : ''), 'form' => 'conversation-shortcut-enter']) ?></li>
+                                <li><?= Html::submitButton('STRG+Enter', ['class' => 'dropdown-item' . ($sendWithCtrlEnter ? ' active' : ''), 'form' => 'conversation-shortcut-ctrl-enter']) ?></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><?= Html::a('Chat-Einstellungen', ['/conversations/settings/index'], ['class' => 'dropdown-item']) ?></li>
+                            </ul>
+                        </span>
                     </span>
                 </div>
             </div>
+        <?= Html::endForm() ?>
+        <?= Html::beginForm(['/conversations/settings/set-composer-shortcut'], 'post', ['id' => 'conversation-shortcut-enter', 'class' => 'd-none']) ?>
+            <?= Html::hiddenInput('sendWithCtrlEnter', '0') ?>
+            <?= Html::hiddenInput('returnUrl', Yii::$app->request->url) ?>
+        <?= Html::endForm() ?>
+        <?= Html::beginForm(['/conversations/settings/set-composer-shortcut'], 'post', ['id' => 'conversation-shortcut-ctrl-enter', 'class' => 'd-none']) ?>
+            <?= Html::hiddenInput('sendWithCtrlEnter', '1') ?>
+            <?= Html::hiddenInput('returnUrl', Yii::$app->request->url) ?>
         <?= Html::endForm() ?>
     <?php endif; ?>
 </section>

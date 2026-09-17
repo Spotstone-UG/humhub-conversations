@@ -18,6 +18,7 @@ $required = [
     'migrations/m260917_220000_add_muted_spaces.php',
     'migrations/m260917_230000_add_replies_interests_and_consensus_reasons.php',
     'migrations/m260917_240000_add_message_submission_tokens.php',
+    'migrations/m260918_010000_add_composer_send_shortcut.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
     'models/ConversationMessageSubmission.php',
@@ -199,9 +200,23 @@ $idempotency = (string) file_get_contents($root . '/services/ConversationService
     . (string) file_get_contents($root . '/controllers/ConversationController.php')
     . (string) file_get_contents($root . '/views/conversation/view.php')
     . $browserScript;
-foreach (['ConversationMessageSubmission', 'conversationSubmissionToken', 'conversationSubmitting', 'findSubmittedMessage', 'Ctrl/Cmd+Enter', 'conversation-composer__send-hint'] as $requiredToken) {
+foreach (['ConversationMessageSubmission', 'conversationSubmissionToken', 'conversationSubmitting', 'findSubmittedMessage'] as $requiredToken) {
     if (!str_contains($idempotency, $requiredToken)) {
         fwrite(STDERR, "Message idempotency protection missing: $requiredToken\n");
+        exit(1);
+    }
+}
+
+$composerShortcut = (string) file_get_contents($root . '/models/ConversationUserSetting.php')
+    . (string) file_get_contents($root . '/models/forms/ReadReceiptSettingsForm.php')
+    . (string) file_get_contents($root . '/controllers/SettingsController.php')
+    . (string) file_get_contents($root . '/views/settings/index.php')
+    . (string) file_get_contents($root . '/views/conversation/view.php')
+    . $browserScript
+    . (string) file_get_contents($root . '/migrations/m260918_010000_add_composer_send_shortcut.php');
+foreach (['sendWithCtrlEnter', 'send_with_ctrl_enter', 'data-conversation-send-with-ctrl-enter', 'conversation-composer__shortcut-menu', 'insertEditorNewline'] as $requiredToken) {
+    if (!str_contains($composerShortcut, $requiredToken)) {
+        fwrite(STDERR, "Global composer shortcut setting missing: $requiredToken\n");
         exit(1);
     }
 }

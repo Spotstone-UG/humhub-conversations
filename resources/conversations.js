@@ -42,6 +42,21 @@
         selection?.addRange(range);
     }
 
+    function insertEditorNewline(composer) {
+        const input = editor(composer);
+        if (!input) { return; }
+        if (input.value !== undefined) {
+            const start = input.selectionStart ?? input.value.length;
+            const end = input.selectionEnd ?? start;
+            input.setRangeText('\n', start, end, 'end');
+            input.dispatchEvent(new Event('input', {bubbles: true}));
+            return;
+        }
+        input.focus();
+        document.execCommand('insertLineBreak', false);
+        input.dispatchEvent(new Event('input', {bubbles: true}));
+    }
+
     function appendMarkdownQuote(composer, text) {
         const input = editor(composer);
         if (!input) { return; }
@@ -173,12 +188,17 @@
                 clearAfterExplicitSend();
             }, true);
             composer.addEventListener('keydown', function (event) {
-                // Keep Enter for Markdown paragraphs. Ctrl/Cmd+Enter follows
-                // the familiar chat shortcut and uses the exact same button
-                // path as a mouse click, including the duplicate-send guard.
-                if (event.key !== 'Enter' || event.isComposing || (!event.ctrlKey && !event.metaKey)) { return; }
+                if (event.key !== 'Enter' || event.isComposing || event.altKey) { return; }
+                const sendWithCtrlEnter = composer.dataset.conversationSendWithCtrlEnter === 'true';
+                const modifierPressed = event.ctrlKey || event.metaKey;
+                const shouldSend = sendWithCtrlEnter ? modifierPressed && !event.shiftKey : !modifierPressed && !event.shiftKey;
+                if (!shouldSend && !(modifierPressed && !event.shiftKey)) { return; }
                 event.preventDefault();
                 event.stopImmediatePropagation();
+                if (!shouldSend) {
+                    insertEditorNewline(composer);
+                    return;
+                }
                 if (event.repeat || composer.dataset.conversationSubmitting === 'true' || editorText(composer) === '') { return; }
                 const button = composer.querySelector('button[type="submit"]');
                 if (button && !button.disabled && button.getAttribute('aria-disabled') !== 'true') { button.click(); }
