@@ -16,6 +16,7 @@ $required = [
     'migrations/m260917_200000_add_subconversations_and_lifecycle.php',
     'migrations/m260917_210000_add_consensus_workflow.php',
     'migrations/m260917_220000_add_muted_spaces.php',
+    'migrations/m260917_230000_add_replies_interests_and_consensus_reasons.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
     'models/ConversationUserState.php',
@@ -27,9 +28,14 @@ $required = [
     'models/ConversationConsensusProposal.php',
     'models/ConversationConsensusResponse.php',
     'models/ConversationMutedSpace.php',
+    'models/ConversationInterest.php',
     'services/ConversationStateService.php',
     'services/ConversationOverviewService.php',
     'services/ConversationConsensusService.php',
+    'services/ConversationInterestService.php',
+    'services/ConversationNotifier.php',
+    'notifications/ChatNotification.php',
+    'notifications/ChatNotificationCategory.php',
     'services/ConversationReactionService.php',
     'services/EmojiPaletteService.php',
     'services/PostEmojiReactionService.php',
@@ -158,6 +164,29 @@ $stateService = (string) file_get_contents($root . '/services/ConversationStateS
 foreach (['ConversationUserState', 'ConversationReadReceipt', 'readReceiptsEnabled'] as $requiredToken) {
     if (!str_contains($stateService, $requiredToken)) {
         fwrite(STDERR, "Personal state/receipt privacy rule missing: $requiredToken\n");
+        exit(1);
+    }
+}
+
+$newInteractions = (string) file_get_contents($root . '/models/ConversationMessage.php')
+    . (string) file_get_contents($root . '/services/ConversationService.php')
+    . (string) file_get_contents($root . '/views/conversation/view.php')
+    . (string) file_get_contents($root . '/resources/conversations.js')
+    . (string) file_get_contents($root . '/migrations/m260917_230000_add_replies_interests_and_consensus_reasons.php');
+foreach (['reply_to_message_id', 'Antworten', 'Auswahl zitieren', 'RichTextField', 'conversation-draft-', 'reason'] as $requiredToken) {
+    if (!str_contains($newInteractions, $requiredToken)) {
+        fwrite(STDERR, "Reply, quote, Markdown or draft workflow missing: $requiredToken\n");
+        exit(1);
+    }
+}
+
+$notifications = (string) file_get_contents($root . '/services/ConversationNotifier.php')
+    . (string) file_get_contents($root . '/notifications/ChatNotification.php')
+    . (string) file_get_contents($root . '/notifications/ChatNotificationCategory.php')
+    . (string) file_get_contents($root . '/Module.php');
+foreach (['ChatNotification', 'getNotifications', 'sendBulk', 'Push Notifications (Firebase)', 'ConversationInterest'] as $requiredToken) {
+    if (!str_contains($notifications, $requiredToken)) {
+        fwrite(STDERR, "Native/push notification compatibility missing: $requiredToken\n");
         exit(1);
     }
 }

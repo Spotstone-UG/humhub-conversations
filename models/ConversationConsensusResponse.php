@@ -24,6 +24,7 @@ final class ConversationConsensusResponse extends ActiveRecord
             [['proposal_id', 'user_id', 'decision'], 'required'],
             [['proposal_id', 'user_id'], 'integer', 'min' => 1],
             [['decision'], 'in', 'range' => [self::DECISION_CONSENT, self::DECISION_OBJECTION]],
+            [['reason'], 'string', 'max' => 2000],
             [['responded_at'], 'safe'],
         ];
     }

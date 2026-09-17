@@ -49,6 +49,13 @@ final class ConversationService
         if (!$conversation->content->canView() || !(new ConversationMessage($conversation->content->container))->content->canEdit()) {
             throw new \yii\web\ForbiddenHttpException();
         }
+        $message->reply_to_message_id = $message->reply_to_message_id === '' ? null : $message->reply_to_message_id;
+        if ($message->reply_to_message_id !== null && !ConversationMessage::find()->where([
+            'id' => $message->reply_to_message_id,
+            'conversation_id' => $conversation->id,
+        ])->exists()) {
+            throw new BadRequestHttpException('Die zitierte Nachricht gehört nicht zu diesem Chat.');
+        }
 
         return Yii::$app->db->transaction(function () use ($conversation, $message, $fileGuids): ConversationMessage {
             $message->conversation_id = $conversation->id;
@@ -143,6 +150,11 @@ final class ConversationService
     {
         if (!$conversation->content->canEdit()) {
             throw new \yii\web\ForbiddenHttpException();
+        }
+
+        $outcome = trim($outcome);
+        if ($outcome === '') {
+            throw new BadRequestHttpException('Bitte halte ein Gesprächsergebnis fest, bevor du den Chat beendest.');
         }
 
         (new ConversationConsensusService())->start($conversation, $outcome, Yii::$app->user->identity);

@@ -45,16 +45,19 @@ final class ConversationConsensusService
         return false;
     }
 
-    /** @return array{proposal: ConversationConsensusProposal|null, participants: User[], responses: array<int, string>, status: string, consentCount: int, objectionCount: int, deadline: string|null, canRespond: bool, canProposeAlternative: bool} */
+    /** @return array{proposal: ConversationConsensusProposal|null, history: ConversationConsensusProposal[], participants: User[], participantResponses: array<int, array{user: User, decision: string|null, respondedAt: string|null, reason: string|null}>, responses: array<int, string>, status: string, consentCount: int, objectionCount: int, deadline: string|null, canRespond: bool, canWithdrawObjection: bool, canProposeAlternative: bool} */
     public function currentStatus(Conversation $conversation, ?User $currentUser): array
     {
-        $proposal = $conversation->getConsensusProposals()->one();
+        $history = $conversation->getConsensusProposals()->with(['createdBy', 'responses.user'])->all();
+        $proposal = $history[0] ?? null;
         $participants = $this->participants($conversation);
         $participantIds = array_map(static fn(User $user): int => (int) $user->id, $participants);
         $responses = [];
+        $responseModels = [];
         if ($proposal !== null) {
             foreach ($proposal->responses as $response) {
                 $responses[(int) $response->user_id] = $response->decision;
+                $responseModels[(int) $response->user_id] = $response;
             }
         }
 
@@ -75,36 +78,63 @@ final class ConversationConsensusService
         }
 
         $isParticipant = $currentUser !== null && in_array((int) $currentUser->id, $participantIds, true);
+        $participantResponses = [];
+        foreach ($participants as $participant) {
+            $response = $responseModels[(int) $participant->id] ?? null;
+            $participantResponses[] = [
+                'user' => $participant,
+                'decision' => $response?->decision,
+                'respondedAt' => $response?->responded_at,
+                'reason' => $response?->reason,
+            ];
+        }
+        $canWithdrawObjection = $isParticipant
+            && $proposal !== null
+            && $status === 'objection'
+            && ($responses[(int) $currentUser->id] ?? null) === ConversationConsensusResponse::DECISION_OBJECTION;
         return [
             'proposal' => $proposal,
+            'history' => $history,
             'participants' => $participants,
+            'participantResponses' => $participantResponses,
             'responses' => $responses,
             'status' => $status,
             'consentCount' => $consentCount,
             'objectionCount' => $objectionCount,
             'deadline' => $deadline,
             'canRespond' => $isParticipant && $proposal !== null && !in_array($status, ['confirmed_all', 'confirmed_timeout'], true),
+            'canWithdrawObjection' => $canWithdrawObjection,
             'canProposeAlternative' => $isParticipant && $proposal !== null && $status === 'objection',
         ];
     }
 
-    public function respond(Conversation $conversation, ConversationConsensusProposal $proposal, User $user, string $decision): void
+    public function respond(Conversation $conversation, ConversationConsensusProposal $proposal, User $user, string $decision, ?string $reason = null): void
     {
         $status = $this->currentStatus($conversation, $user);
-        if ($status['proposal'] === null || (int) $status['proposal']->id !== (int) $proposal->id || !$status['canRespond']) {
+        $withdrawsOwnObjection = $status['canWithdrawObjection'] && $decision === ConversationConsensusResponse::DECISION_CONSENT;
+        if ($status['proposal'] === null || (int) $status['proposal']->id !== (int) $proposal->id || (!$status['canRespond'] && !$withdrawsOwnObjection)) {
             throw new ForbiddenHttpException();
         }
         if (!in_array($decision, [ConversationConsensusResponse::DECISION_CONSENT, ConversationConsensusResponse::DECISION_OBJECTION], true)) {
             throw new BadRequestHttpException('Ungültige Konsensentscheidung.');
+        }
+        $reason = trim((string) $reason);
+        if ($decision === ConversationConsensusResponse::DECISION_OBJECTION && $reason === '') {
+            throw new BadRequestHttpException('Ein Widerspruch braucht eine kurze Begründung.');
+        }
+        if (mb_strlen($reason) > 2000) {
+            throw new BadRequestHttpException('Die Begründung darf höchstens 2000 Zeichen lang sein.');
         }
 
         Yii::$app->db->createCommand()->upsert('{{%conversation_consensus_response}}', [
             'proposal_id' => $proposal->id,
             'user_id' => $user->id,
             'decision' => $decision,
+            'reason' => $decision === ConversationConsensusResponse::DECISION_OBJECTION ? $reason : null,
             'responded_at' => date('Y-m-d H:i:s'),
         ], [
             'decision' => $decision,
+            'reason' => $decision === ConversationConsensusResponse::DECISION_OBJECTION ? $reason : null,
             'responded_at' => date('Y-m-d H:i:s'),
         ])->execute();
     }

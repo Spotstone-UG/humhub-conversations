@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use humhub\helpers\Html;
+use humhub\modules\conversations\models\ConversationInterest;
 
 /** @var array{space: \humhub\modules\space\models\Space, conversations: \humhub\modules\conversations\models\Conversation[], unreadCounts: array<int, int>, isMuted: bool} $group */
 $space = $group['space'];
@@ -23,7 +24,8 @@ $muted = $group['isMuted'];
         </div>
         <?php foreach ($group['conversations'] as $conversation): ?>
             <?php $unread = $group['unreadCounts'][(int) $conversation->id] ?? 0; ?>
-            <article class="conversation-overview__row <?= $conversation->parent_conversation_id !== null ? 'conversation-overview__row--sub' : 'conversation-overview__row--parent' ?>" role="row">
+            <?php $interested = ConversationInterest::find()->where(['conversation_id' => $conversation->id, 'user_id' => $currentUser->id])->exists(); ?>
+            <article class="conversation-overview__row <?= $conversation->parent_conversation_id !== null ? 'conversation-overview__row--sub' : 'conversation-overview__row--parent' ?>" role="row" data-conversation-status="<?= $conversation->isClosed ? 'closed' : 'open' ?>" data-conversation-unread="<?= $unread > 0 ? 'true' : 'false' ?>" data-conversation-interest="<?= $interested ? 'true' : 'false' ?>">
                 <div class="conversation-overview__topic">
                     <?php if ($conversation->parent_conversation_id !== null): ?><span aria-hidden="true">↳ </span><?php endif; ?>
                     <?= Html::a(Html::encode($conversation->title), $conversation->url) ?>
@@ -33,6 +35,7 @@ $muted = $group['isMuted'];
                         <small class="conversation-overview__subcount"><?= $conversation->getSubconversations()->count() ?> Unterthemen</small>
                     <?php endif; ?>
                     <?php if ($conversation->summary): ?><small><?= Html::encode($conversation->summary) ?></small><?php endif; ?>
+                    <?php if ($interested): ?><small class="conversation-overview__interest">Interessiert dich</small><?php endif; ?>
                 </div>
                 <div>
                     <span class="conversation-status <?= $conversation->isClosed ? 'conversation-status--closed' : '' ?>"><?= $conversation->isClosed ? 'Beendet' : 'Offen' ?></span>

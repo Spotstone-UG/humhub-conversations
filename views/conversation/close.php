@@ -10,9 +10,9 @@ use humhub\helpers\Html;
     <div class="modal-content">
         <div class="modal-header"><h4 class="modal-title">Unterhaltung beenden</h4></div>
         <div class="modal-body">
-            <p class="help-block">Das Gespräch bleibt lesbar. Das Ergebnis erscheint beim späteren Öffnen als Erstes.</p>
+            <p class="help-block">Das Gespräch bleibt lesbar. Das Ergebnis erscheint beim späteren Öffnen als Erstes und bildet die Grundlage für die Konsensrunde.</p>
             <?= Html::label('Gesprächsergebnis', 'conversation-outcome', ['class' => 'control-label']) ?>
-            <?= Html::textarea('outcome', $conversation->outcome, ['id' => 'conversation-outcome', 'class' => 'form-control', 'rows' => 5, 'maxlength' => 4000, 'placeholder' => 'Was wurde beschlossen oder offen gelassen?']) ?>
+            <?= Html::textarea('outcome', $conversation->outcome, ['id' => 'conversation-outcome', 'class' => 'form-control', 'rows' => 5, 'maxlength' => 4000, 'required' => true, 'placeholder' => 'Was wurde beschlossen, was bleibt offen und was sind die nächsten Schritte?']) ?>
         </div>
         <div class="modal-footer">
             <?= Html::button('Abbrechen', ['class' => 'btn btn-default', 'data-bs-dismiss' => 'modal']) ?>

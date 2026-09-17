@@ -23,9 +23,26 @@ final class OverviewController extends Controller
 
     public function actionIndex(): string
     {
-        $groups = (new ConversationOverviewService())->groupedBySpace(Yii::$app->user->identity);
+        $service = new ConversationOverviewService();
+        $groups = $service->groupedBySpace(Yii::$app->user->identity);
 
-        return $this->render('index', ['groups' => $groups]);
+        return $this->render('index', [
+            'groups' => $groups,
+            'unreadTotal' => $service->unreadTotal(Yii::$app->user->identity),
+            'overviewRevision' => $this->overviewRevision($groups),
+            'currentUser' => Yii::$app->user->identity,
+        ]);
+    }
+
+    /** Background state for the overview; no push server is required for this first live layer. */
+    public function actionLiveState()
+    {
+        $service = new ConversationOverviewService();
+        $groups = $service->groupedBySpace(Yii::$app->user->identity);
+        return $this->asJson([
+            'unreadTotal' => $service->unreadTotal(Yii::$app->user->identity),
+            'revision' => $this->overviewRevision($groups),
+        ]);
     }
 
     public function actionToggleMute(int $spaceId)
@@ -41,5 +58,16 @@ final class OverviewController extends Controller
         Yii::$app->session->setFlash('success', $isMuted ? 'Der Space ist stummgeschaltet.' : 'Der Space ist nicht mehr stummgeschaltet.');
 
         return $this->redirect(['/conversations/overview/index']);
+    }
+
+    private function overviewRevision(array $groups): string
+    {
+        $items = [];
+        foreach ($groups as $group) {
+            foreach ($group['conversations'] as $conversation) {
+                $items[] = $conversation->id . ':' . ($conversation->last_message_at ?? '') . ':' . ($conversation->closed_at ?? '');
+            }
+        }
+        return sha1(implode('|', $items));
     }
 }

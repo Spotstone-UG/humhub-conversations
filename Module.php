@@ -39,6 +39,16 @@ final class Module extends ContentContainerModule
         return [new CreateConversation()];
     }
 
+    /**
+     * Registers the native notification type with HumHub.  Every enabled
+     * notification target (including Push Notifications / Firebase) receives
+     * the same record and can apply the person's own target preference.
+     */
+    public function getNotifications(): array
+    {
+        return [\humhub\modules\conversations\notifications\ChatNotification::class];
+    }
+
     /** Conversation records deliberately survive disabling the Space module. */
     public function disableContentContainer(ContentContainerActiveRecord $container): void
     {

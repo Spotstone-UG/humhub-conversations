@@ -101,9 +101,26 @@ final class Conversation extends ContentActiveRecord
         return parent::beforeSave($insert);
     }
 
+    public function afterSave($insert, $changedAttributes): void
+    {
+        parent::afterSave($insert, $changedAttributes);
+        if (!$insert || Yii::$app->user->isGuest) {
+            return;
+        }
+
+        $user = Yii::$app->user->identity;
+        (new \humhub\modules\conversations\services\ConversationInterestService())->addCreator($this, $user);
+        (new \humhub\modules\conversations\services\ConversationNotifier())->notifyNewChat($this, $user);
+    }
+
     public function getUserStates(): ActiveQuery
     {
         return $this->hasMany(ConversationUserState::class, ['conversation_id' => 'id']);
+    }
+
+    public function getInterests(): ActiveQuery
+    {
+        return $this->hasMany(ConversationInterest::class, ['conversation_id' => 'id']);
     }
 
     public function getMessageCount(): int

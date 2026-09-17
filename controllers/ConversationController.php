@@ -11,6 +11,7 @@ use humhub\modules\conversations\services\ConversationService;
 use humhub\modules\conversations\services\ConversationReactionService;
 use humhub\modules\conversations\services\ConversationStateService;
 use humhub\modules\conversations\services\ConversationConsensusService;
+use humhub\modules\conversations\services\ConversationInterestService;
 use humhub\modules\conversations\models\ConversationConsensusProposal;
 use humhub\modules\space\models\Space;
 use humhub\modules\conversations\widgets\ConversationForm;
@@ -128,6 +129,22 @@ final class ConversationController extends ContentContainerController
             'contentContainer' => $this->contentContainer,
             'consensus' => $consensusService->currentStatus($conversation, Yii::$app->user->identity),
             'canEnd' => !$conversation->isClosed && $conversation->content->canEdit() && $consensusService->isParticipant($conversation, Yii::$app->user->identity),
+            'isInterested' => (new ConversationInterestService())->isInterested($conversation, Yii::$app->user->identity),
+            'latestMessageId' => $lastShownMessageId ?? 0,
+        ]);
+    }
+
+    /** Small polling endpoint; a later socket provider can replace only the client transport. */
+    public function actionLiveState(int $conversationId)
+    {
+        $conversation = $this->findConversation($conversationId);
+        $latestMessageId = (int) ConversationMessage::find()
+            ->where(['conversation_id' => $conversation->id])
+            ->max('id');
+
+        return $this->asJson([
+            'latestMessageId' => $latestMessageId,
+            'closed' => $conversation->isClosed,
         ]);
     }
 
@@ -148,7 +165,7 @@ final class ConversationController extends ContentContainerController
         );
         (new ConversationStateService())->markSeen($conversation, Yii::$app->user->identity, $createdMessage->id);
 
-        return $this->redirect($conversation->url . '#conversation-message-' . $createdMessage->id);
+        return $this->redirect($conversation->url . '&draftSent=1#conversation-message-' . $createdMessage->id);
     }
 
     /**
@@ -251,6 +268,16 @@ final class ConversationController extends ContentContainerController
         ]);
     }
 
+    /** Personal opt-in: this person receives subsequent message notices for this chat. */
+    public function actionToggleInterest(int $conversationId)
+    {
+        $this->forcePostRequest();
+        $conversation = $this->findConversation($conversationId);
+        $interested = (new ConversationInterestService())->toggle($conversation, Yii::$app->user->identity);
+        Yii::$app->session->setFlash('success', $interested ? 'Dieser Chat interessiert dich jetzt.' : 'Du erhältst keine laufenden Hinweise mehr für diesen Chat.');
+        return $this->redirect($conversation->url);
+    }
+
     public function actionReopen(int $conversationId)
     {
         $this->forcePostRequest();
@@ -271,6 +298,34 @@ final class ConversationController extends ContentContainerController
         (new ConversationConsensusService())->respond($conversation, $proposal, Yii::$app->user->identity, (string) Yii::$app->request->post('decision'));
 
         return $this->redirect($conversation->url . '#conversation-consensus');
+    }
+
+    /** A reason makes a disagreement useful and allows a humane alternative proposal. */
+    public function actionObject(int $conversationId, int $proposalId)
+    {
+        $conversation = $this->findConversation($conversationId);
+        $proposal = ConversationConsensusProposal::findOne(['id' => $proposalId, 'conversation_id' => $conversation->id]);
+        if ($proposal === null) {
+            throw new NotFoundHttpException();
+        }
+
+        if (Yii::$app->request->isPost) {
+            $this->forcePostRequest();
+            (new ConversationConsensusService())->respond(
+                $conversation,
+                $proposal,
+                Yii::$app->user->identity,
+                \humhub\modules\conversations\models\ConversationConsensusResponse::DECISION_OBJECTION,
+                (string) Yii::$app->request->post('reason'),
+            );
+            return $this->redirect($conversation->url . '#conversation-consensus');
+        }
+
+        return $this->renderAjax('object', [
+            'conversation' => $conversation,
+            'proposal' => $proposal,
+            'contentContainer' => $this->contentContainer,
+        ]);
     }
 
     public function actionAlternativeProposal(int $conversationId, int $proposalId)

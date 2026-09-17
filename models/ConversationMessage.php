@@ -27,7 +27,7 @@ final class ConversationMessage extends ContentActiveRecord
     {
         return [
             [['conversation_id'], 'required'],
-            [['conversation_id'], 'integer', 'min' => 1],
+            [['conversation_id', 'reply_to_message_id'], 'integer', 'min' => 1],
             [['message'], 'required'],
             [['message'], 'string', 'max' => 65535],
             [['deleted_at'], 'safe'],
@@ -42,12 +42,21 @@ final class ConversationMessage extends ContentActiveRecord
 
         if ($insert) {
             Conversation::updateAll(['last_message_at' => $this->content->created_at], ['id' => $this->conversation_id]);
+            if (!Yii::$app->user->isGuest) {
+                (new \humhub\modules\conversations\services\ConversationNotifier())->notifyInterested($this, Yii::$app->user->identity);
+            }
         }
     }
 
     public function getConversation(): ActiveQuery
     {
         return $this->hasOne(Conversation::class, ['id' => 'conversation_id']);
+    }
+
+    /** The message this reply refers to, always inside the same chat. */
+    public function getReplyToMessage(): ActiveQuery
+    {
+        return $this->hasOne(self::class, ['id' => 'reply_to_message_id']);
     }
 
     public function getReadReceipts(): ActiveQuery
