@@ -50,7 +50,7 @@ $reactionSummaries = (new ConversationReactionService())->summaries($messages, $
                     <?php endif; ?>
                 </div>
                 <div class="conversation-message__actions">
-                    <?= Html::a('☺ Reaktion', '#', [
+                    <?= Html::a('Reaktion', '#', [
                         'class' => 'conversation-message__reaction-trigger',
                         'data-action-click' => 'ui.modal.load',
                         'data-action-url' => $contentContainer->createUrl('/conversations/conversation/reaction-picker', ['conversationId' => $conversation->id, 'messageId' => $message->id]),
@@ -77,7 +77,13 @@ $reactionSummaries = (new ConversationReactionService())->summaries($messages, $
                     </div>
                 <?php endif; ?>
                 <?php if ($message->edited_at !== null): ?>
-                    <div class="conversation-message__edited" title="Bearbeitet am <?= Html::encode(Yii::$app->formatter->asDatetime($message->edited_at, 'short')) ?>">bearbeitet</div>
+                    <div class="conversation-message__edited">
+                        <?= Html::a('bearbeitet', '#', [
+                            'title' => 'Änderungsverlauf anzeigen',
+                            'data-action-click' => 'ui.modal.load',
+                            'data-action-url' => $contentContainer->createUrl('/conversations/conversation/edit-history', ['conversationId' => $conversation->id, 'messageId' => $message->id]),
+                        ]) ?>
+                    </div>
                 <?php endif; ?>
             </article>
         <?php endforeach; ?>

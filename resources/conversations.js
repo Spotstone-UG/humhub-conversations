@@ -30,6 +30,26 @@
             }, {once: true});
         });
 
+        document.addEventListener('click', function (event) {
+            const tab = event.target.closest('[data-conversation-reaction-category]');
+            if (!tab) {
+                return;
+            }
+
+            const picker = tab.closest('.conversation-reaction-picker');
+            const category = tab.dataset.conversationReactionCategory;
+            picker?.querySelectorAll('[data-conversation-reaction-category]').forEach(function (item) {
+                item.classList.toggle('is-active', item === tab);
+            });
+            picker?.querySelectorAll('[data-conversation-reaction-category-panel]').forEach(function (panel) {
+                panel.hidden = panel.dataset.conversationReactionCategoryPanel !== category;
+            });
+            const heading = picker?.querySelector('[data-conversation-reaction-heading]');
+            if (heading) {
+                heading.textContent = tab.getAttribute('aria-label') || '';
+            }
+        });
+
         document.addEventListener('input', function (event) {
             const search = event.target;
             if (!(search instanceof HTMLInputElement) || !search.matches('[data-conversation-reaction-search]')) {
@@ -38,6 +58,10 @@
 
             const term = search.value.trim().toLocaleLowerCase();
             const picker = search.closest('.conversation-reaction-picker');
+            const activeTab = picker?.querySelector('[data-conversation-reaction-category].is-active');
+            picker?.querySelectorAll('[data-conversation-reaction-category-panel]').forEach(function (panel) {
+                panel.hidden = term === '' && panel.dataset.conversationReactionCategoryPanel !== activeTab?.dataset.conversationReactionCategory;
+            });
             picker?.querySelectorAll('[data-conversation-reaction-name]').forEach(function (item) {
                 item.hidden = term !== '' && !item.dataset.conversationReactionName.toLocaleLowerCase().includes(term);
             });

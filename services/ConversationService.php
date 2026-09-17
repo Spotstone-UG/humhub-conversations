@@ -7,6 +7,7 @@ use humhub\modules\content\components\ContentContainerActiveRecord;
 use humhub\modules\content\models\Content;
 use humhub\modules\conversations\models\Conversation;
 use humhub\modules\conversations\models\ConversationMessage;
+use humhub\modules\conversations\models\ConversationMessageRevision;
 use Yii;
 use yii\web\BadRequestHttpException;
 
@@ -66,11 +67,27 @@ final class ConversationService
             return true;
         }
 
-        $message->edited_at = date('Y-m-d H:i:s');
-        if ($message->save()) {
-            return true;
-        }
+        $previousMessage = (string) $message->getOldAttribute('message');
+        $editedAt = date('Y-m-d H:i:s');
 
-        return false;
+        return Yii::$app->db->transaction(function () use ($message, $previousMessage, $editedAt): bool {
+            $message->edited_at = $editedAt;
+            if (!$message->save()) {
+                return false;
+            }
+
+            $revision = new ConversationMessageRevision([
+                'message_id' => $message->id,
+                'editor_id' => Yii::$app->user->id,
+                'previous_message' => $previousMessage,
+                'revised_message' => $message->message,
+                'edited_at' => $editedAt,
+            ]);
+            if (!$revision->save()) {
+                throw new BadRequestHttpException('Der Änderungsverlauf konnte nicht gespeichert werden.');
+            }
+
+            return true;
+        });
     }
 }

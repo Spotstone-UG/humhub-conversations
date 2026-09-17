@@ -59,6 +59,12 @@ final class ConversationMessage extends ContentActiveRecord
         return $this->hasMany(ConversationReaction::class, ['message_id' => 'id']);
     }
 
+    public function getRevisions(): ActiveQuery
+    {
+        return $this->hasMany(ConversationMessageRevision::class, ['message_id' => 'id'])
+            ->orderBy(['edited_at' => SORT_DESC, 'id' => SORT_DESC]);
+    }
+
     public function getContentName(): string
     {
         return Yii::t('ConversationsModule.base', 'Conversation message');

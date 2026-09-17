@@ -11,14 +11,17 @@ $required = [
     'migrations/m260917_150000_initial.php',
     'migrations/m260917_160000_add_message_edit_marker.php',
     'migrations/m260917_170000_add_emoji_reactions.php',
+    'migrations/m260917_180000_add_message_revision_history.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
     'models/ConversationUserState.php',
     'models/ConversationReadReceipt.php',
     'models/ConversationUserSetting.php',
     'models/ConversationReaction.php',
+    'models/ConversationMessageRevision.php',
     'services/ConversationStateService.php',
     'services/ConversationReactionService.php',
+    'services/EmojiPaletteService.php',
     'controllers/ConversationController.php',
     'widgets/ConversationForm.php',
     'widgets/views/conversationForm.php',
@@ -60,7 +63,7 @@ foreach (['WallStreamEntryWidget', 'ConversationForm::class', 'createFormSortOrd
 
 $messageService = (string) file_get_contents($root . '/services/ConversationService.php');
 $messageController = (string) file_get_contents($root . '/controllers/ConversationController.php');
-foreach (['editMessage', 'created_by', 'edited_at'] as $requiredToken) {
+foreach (['editMessage', 'created_by', 'edited_at', 'ConversationMessageRevision', 'previous_message', 'revised_message'] as $requiredToken) {
     if (!str_contains($messageService . $messageController, $requiredToken)) {
         fwrite(STDERR, "Message editing protection missing: $requiredToken\n");
         exit(1);
@@ -69,7 +72,7 @@ foreach (['editMessage', 'created_by', 'edited_at'] as $requiredToken) {
 
 $reactionService = (string) file_get_contents($root . '/services/ConversationReactionService.php');
 $reactionController = (string) file_get_contents($root . '/controllers/ConversationController.php');
-foreach (['toggle', 'EmojiMap::getData', 'actionReact'] as $requiredToken) {
+foreach (['toggle', 'EmojiPaletteService', 'actionReact'] as $requiredToken) {
     if (!str_contains($reactionService . $reactionController, $requiredToken)) {
         fwrite(STDERR, "Emoji reaction implementation missing: $requiredToken\n");
         exit(1);

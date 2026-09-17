@@ -12,7 +12,7 @@ use humhub\modules\conversations\services\ConversationReactionService;
 use humhub\modules\conversations\services\ConversationStateService;
 use humhub\modules\space\models\Space;
 use humhub\modules\conversations\widgets\ConversationForm;
-use humhub\libs\EmojiMap;
+use humhub\modules\conversations\services\EmojiPaletteService;
 use Yii;
 use yii\web\NotFoundHttpException;
 
@@ -156,16 +156,10 @@ final class ConversationController extends ContentContainerController
             $this->forbidden();
         }
 
-        $emojis = [];
-        foreach (EmojiMap::getData() as $name => $emoji) {
-            $emojis[$emoji] ??= $name;
-        }
-        asort($emojis, SORT_NATURAL | SORT_FLAG_CASE);
-
         return $this->renderAjax('reaction-picker', [
             'conversation' => $conversation,
             'message' => $message,
-            'emojis' => $emojis,
+            'categories' => (new EmojiPaletteService())->categories(),
             'contentContainer' => $this->contentContainer,
         ]);
     }
@@ -178,13 +172,29 @@ final class ConversationController extends ContentContainerController
         $message = $this->findMessage($conversation, $messageId);
         $emoji = (string) Yii::$app->request->post('emoji');
 
-        if (!in_array($emoji, EmojiMap::getData(), true)) {
+        if (!(new EmojiPaletteService())->contains($emoji)) {
             throw new \yii\web\BadRequestHttpException('Unbekannte Emoji-Reaktion.');
         }
 
         (new ConversationReactionService())->toggle($message, Yii::$app->user->identity, $emoji);
 
         return $this->redirect($conversation->url . '#conversation-message-' . $message->id);
+    }
+
+    /** Shows the immutable before/after timeline for a changed message. */
+    public function actionEditHistory(int $conversationId, int $messageId): string
+    {
+        $conversation = $this->findConversation($conversationId);
+        $message = $this->findMessage($conversation, $messageId);
+        if (!$message->content->canView()) {
+            $this->forbidden();
+        }
+
+        return $this->renderAjax('edit-history', [
+            'message' => $message,
+            'revisions' => $message->revisions,
+            'contentContainer' => $this->contentContainer,
+        ]);
     }
 
     public function actionReceipts(int $conversationId, int $messageId): string

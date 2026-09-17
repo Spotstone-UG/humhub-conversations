@@ -20,6 +20,7 @@ It deliberately has no AI, automatic summaries, content screening or subtopics. 
 - Account setting **Lesebestätigungen senden**. When off, a user is never added to receipts and cannot see named receipts for their own messages. Personal unread state still works.
 - **V1.3:** Authors can edit only their own messages. Edited messages remain in place, keep files/reactions and show a discreet `bearbeitet` marker with its time. Deleting messages is intentionally not part of this version.
 - **V1.4:** Every message offers **Reaktion**. It opens the complete Unicode emoji catalogue already bundled with HumHub; people can add or remove each emoji independently. The legacy single-purpose `Gefällt mir` control is not used in Conversations.
+- **V1.5:** The emoji picker is grouped and searchable like familiar chat apps. Reactions sit compactly on the message bubble. `bearbeitet` is a small link to an immutable before/after timeline with each edit's time.
 
 ## Architecture
 
@@ -70,6 +71,7 @@ Target test location: `testcommunity.selbstsein.events`. Production is explicitl
 7. **Regression:** Disable the module for the Space and verify no data is deleted. Re-enable it and verify existing conversations remain accessible.
 8. **Editing:** Author A edits one of their messages. Confirm the edit dialog, the changed content and `bearbeitet` marker. Confirm B and Space managers do not receive an edit link and cannot call the edit route successfully.
 9. **Emoji reactions:** Confirm every message has **Reaktion**, the picker can search the full catalogue and a selected emoji appears with its count. Select it again to remove the personal reaction.
+10. **Edit history:** Edit a message twice. Confirm `bearbeitet` opens a timeline with the before/after content and time of both changes. Confirm all Conversation participants can read the history, but only the author can create revisions.
 
 ## Developer checks
 
