@@ -1,6 +1,7 @@
 <?php
-// Copy this file to realtime.local.php and replace every placeholder.
-// Keep realtime.local.php private: it contains a shared service secret.
+// Local-development fallback only. Production and testcommunity use the
+// application-level protected/config/conversations-realtime.php instead.
+// Keep either local file private: it contains a shared service secret.
 return [
     'enabled' => true,
     'publicUrl' => 'wss://testcommunity.selbsstein.events/conversations-realtime',

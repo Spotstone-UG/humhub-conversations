@@ -1,0 +1,10 @@
+<?php
+// Copy this file to HumHub's protected/config/conversations-realtime.php.
+// It lives outside the module directory and therefore survives module updates.
+// Never commit the copied file: it contains the shared relay secret.
+return [
+    'enabled' => true,
+    'publicUrl' => 'wss://testcommunity.selbstsein.events/conversations-realtime',
+    'publishUrl' => 'http://127.0.0.1:8091/publish',
+    'sharedSecret' => 'replace-with-a-random-secret-of-at-least-32-characters',
+];

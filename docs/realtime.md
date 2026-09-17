@@ -75,16 +75,19 @@ wie üblich in die Testcommunity ausrollen und den Live-Betrieb nicht ändern.
    curl http://127.0.0.1:8091/healthz
    ```
 
-6. Im Modul `config/realtime.local.php` anlegen (aus der Beispielvorlage) und
-   exakt dasselbe Secret eintragen. Die beiden URLs müssen so lauten:
+6. Die Vorlage `config/conversations-realtime.php.example` als
+   `protected/config/conversations-realtime.php` der Testcommunity ablegen
+   und exakt dasselbe Secret eintragen. Diese Datei liegt bewusst außerhalb
+   des Modulordners und überlebt damit Updates über den GitHub-Modulmanager.
+   Die beiden URLs müssen so lauten:
 
    ```php
    'publicUrl' => 'wss://testcommunity.selbsstein.events/conversations-realtime',
    'publishUrl' => 'http://127.0.0.1:8091/publish',
    ```
 
-   Die Datei bleibt außerhalb von Git und darf beim Modul-Update nicht
-   überschrieben werden.
+   Die Datei bleibt außerhalb von Git. Die lokale Vorlage im Modul ist nur
+   für Entwicklung vorgesehen und wird bei dieser Installation nicht benutzt.
 7. In Plesk für die Domain unter **Apache & nginx-Einstellungen** eine
    zusätzliche nginx-Direktive eintragen und speichern:
 

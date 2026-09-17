@@ -87,10 +87,14 @@ final class ConversationRealtimeService
     /** @return array{publicUrl:string,publishUrl:string,sharedSecret:string}|null */
     private function config(): ?array
     {
-        // HumHub's module loader only keeps its own core configuration fields.
-        // Read this private, ignored file directly so its connection secret is
-        // never part of the global application configuration or source code.
-        $configFile = dirname(__DIR__) . '/config/realtime.local.php';
+        // Keep the production secret in HumHub's protected application
+        // configuration, outside the module directory. The GitHub Module
+        // Manager replaces that directory during an update. A module-local
+        // file remains a convenient, ignored fallback for local development.
+        $externalConfigFile = Yii::getAlias('@app/config/conversations-realtime.php');
+        $configFile = is_file($externalConfigFile)
+            ? $externalConfigFile
+            : dirname(__DIR__) . '/config/realtime.local.php';
         $config = is_file($configFile) ? require $configFile : [];
         if (!is_array($config)) {
             $config = [];
