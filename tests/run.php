@@ -20,6 +20,7 @@ $required = [
     'migrations/m260917_240000_add_message_submission_tokens.php',
     'migrations/m260918_010000_add_composer_send_shortcut.php',
     'migrations/m260918_020000_add_typing_indicator_setting.php',
+    'migrations/m260918_030000_enable_typing_indicators_by_default.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
     'models/ConversationMessageSubmission.php',

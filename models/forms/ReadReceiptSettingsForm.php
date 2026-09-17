@@ -9,7 +9,7 @@ final class ReadReceiptSettingsForm extends Model
 {
     public bool $readReceiptsEnabled = true;
     public bool $sendWithCtrlEnter = false;
-    public bool $typingIndicatorsEnabled = false;
+    public bool $typingIndicatorsEnabled = true;
 
     public function rules(): array
     {

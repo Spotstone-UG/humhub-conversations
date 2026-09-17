@@ -37,7 +37,7 @@ final class ConversationUserSetting extends ActiveRecord
     public static function typingIndicatorsEnabled(User $user): bool
     {
         $setting = static::findOne(['user_id' => $user->id]);
-        return $setting !== null && (bool) $setting->typing_indicators_enabled;
+        return $setting === null || (bool) $setting->typing_indicators_enabled;
     }
 
     public function getUser(): ActiveQuery

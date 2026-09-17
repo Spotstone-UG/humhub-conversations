@@ -18,7 +18,7 @@ final class SettingsController extends BaseAccountController
         $form = new ReadReceiptSettingsForm([
             'readReceiptsEnabled' => $setting === null || (bool) $setting->read_receipts_enabled,
             'sendWithCtrlEnter' => $setting !== null && (bool) $setting->send_with_ctrl_enter,
-            'typingIndicatorsEnabled' => $setting !== null && (bool) $setting->typing_indicators_enabled,
+            'typingIndicatorsEnabled' => $setting === null || (bool) $setting->typing_indicators_enabled,
         ]);
 
         if ($form->load(Yii::$app->request->post()) && $form->validate()) {
