@@ -7,6 +7,8 @@ use humhub\modules\content\components\ContentContainerController;
 use humhub\modules\content\widgets\WallCreateContentForm;
 use humhub\modules\conversations\models\Conversation;
 use humhub\modules\conversations\models\ConversationMessage;
+use humhub\modules\conversations\models\ConversationUserSetting;
+use humhub\modules\conversations\models\ConversationUserState;
 use humhub\modules\conversations\services\ConversationService;
 use humhub\modules\conversations\services\ConversationReactionService;
 use humhub\modules\conversations\services\ConversationStateService;
@@ -15,6 +17,7 @@ use humhub\modules\conversations\services\ConversationInterestService;
 use humhub\modules\conversations\services\ConversationRealtimeService;
 use humhub\modules\conversations\models\ConversationConsensusProposal;
 use humhub\modules\space\models\Space;
+use humhub\modules\user\models\User;
 use humhub\modules\conversations\widgets\ConversationForm;
 use humhub\modules\conversations\services\EmojiPaletteService;
 use Yii;
@@ -22,6 +25,8 @@ use yii\web\NotFoundHttpException;
 
 final class ConversationController extends ContentContainerController
 {
+    private const TYPING_TTL = 8;
+
     public $validContentContainerClasses = [Space::class];
 
     public function actionIndex(): string
@@ -167,6 +172,53 @@ final class ConversationController extends ContentContainerController
             'latestMessageId' => $latestMessageId,
             'closed' => $conversation->isClosed,
         ]);
+    }
+
+    /** Stores only a short-lived “is typing” heartbeat, never message content. */
+    public function actionTyping(int $conversationId)
+    {
+        $this->forcePostRequest();
+        $conversation = $this->findConversation($conversationId);
+        if ($conversation->isClosed || !$conversation->content->canEdit()) {
+            $this->forbidden();
+        }
+
+        $userId = (int) Yii::$app->user->id;
+        $key = $this->typingCacheKey($conversation->id, $userId);
+        if (!ConversationUserSetting::typingIndicatorsEnabled(Yii::$app->user->identity)) {
+            Yii::$app->cache->delete($key);
+        } elseif (Yii::$app->request->post('typing') === '1') {
+            Yii::$app->cache->set($key, time(), self::TYPING_TTL);
+        } else {
+            Yii::$app->cache->delete($key);
+        }
+
+        return $this->asJson(['ok' => true]);
+    }
+
+    /** Lists other currently typing people from short-lived cache heartbeats. */
+    public function actionTypingState(int $conversationId)
+    {
+        $conversation = $this->findConversation($conversationId);
+        if (!ConversationUserSetting::typingIndicatorsEnabled(Yii::$app->user->identity)) {
+            return $this->asJson(['users' => []]);
+        }
+        $userIds = ConversationUserState::find()
+            ->select('user_id')
+            ->where(['conversation_id' => $conversation->id])
+            ->andWhere(['<>', 'user_id', Yii::$app->user->id])
+            ->column();
+        $activeIds = array_values(array_filter($userIds, fn($userId) => Yii::$app->cache->get($this->typingCacheKey($conversation->id, (int) $userId)) !== false));
+        $activeIds = ConversationUserSetting::find()
+            ->select('user_id')
+            ->where(['user_id' => $activeIds, 'typing_indicators_enabled' => 1])
+            ->column();
+        if ($activeIds === []) {
+            return $this->asJson(['users' => []]);
+        }
+
+        $users = User::find()->where(['id' => $activeIds])->orderBy(['username' => SORT_ASC])->all();
+        return $this->asJson(['users' => array_map(static fn(User $user) => ['id' => (int) $user->id, 'name' => $user->displayName], $users)]);
     }
 
     public function actionMessage(int $conversationId)
@@ -458,6 +510,11 @@ final class ConversationController extends ContentContainerController
             throw new NotFoundHttpException();
         }
         return $conversation;
+    }
+
+    private function typingCacheKey(int $conversationId, int $userId): string
+    {
+        return 'conversations.typing.' . $conversationId . '.' . $userId;
     }
 
     private function findMessage(Conversation $conversation, int $messageId): ConversationMessage

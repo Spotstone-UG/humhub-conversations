@@ -18,7 +18,7 @@ final class ConversationUserSetting extends ActiveRecord
     {
         return [
             [['user_id'], 'required'],
-            [['user_id', 'read_receipts_enabled', 'send_with_ctrl_enter'], 'integer'],
+            [['user_id', 'read_receipts_enabled', 'send_with_ctrl_enter', 'typing_indicators_enabled'], 'integer'],
         ];
     }
 
@@ -32,6 +32,12 @@ final class ConversationUserSetting extends ActiveRecord
     {
         $setting = static::findOne(['user_id' => $user->id]);
         return $setting !== null && (bool) $setting->send_with_ctrl_enter;
+    }
+
+    public static function typingIndicatorsEnabled(User $user): bool
+    {
+        $setting = static::findOne(['user_id' => $user->id]);
+        return $setting !== null && (bool) $setting->typing_indicators_enabled;
     }
 
     public function getUser(): ActiveQuery

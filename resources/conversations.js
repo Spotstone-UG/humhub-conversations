@@ -61,13 +61,10 @@
         if (composer.dataset.conversationSubmitting === 'true' || editorText(composer) === '') { return; }
         const button = composer.querySelector('button[type="submit"]');
         if (!button || button.disabled || button.getAttribute('aria-disabled') === 'true') { return; }
-        // requestSubmit follows the normal browser submit path, including the
-        // existing submit guard and HumHub's RichText synchronization.
-        if (typeof composer.requestSubmit === 'function') {
-            composer.requestSubmit(button);
-        } else {
-            button.click();
-        }
+        // HumHub's RichText editor synchronizes its hidden field in the
+        // submit button's click handler. Use that exact path; requestSubmit()
+        // would bypass it and submit an empty message.
+        button.click();
     }
 
     function handleComposerShortcut(event) {
@@ -157,6 +154,51 @@
             .then(function (html) { if (html) { appendNewMessages(view, html); } })
             .catch(function () { /* Keep the next socket/poll attempt available after a temporary failure. */ })
             .finally(function () { delete view.dataset.conversationLoadingMessages; });
+    }
+
+    function typingText(users) {
+        const names = users.map(function (user) { return user.name; }).filter(Boolean);
+        if (names.length === 0) { return ''; }
+        if (names.length === 1) { return names[0] + ' tippt …'; }
+        if (names.length === 2) { return names[0] + ' und ' + names[1] + ' tippen …'; }
+        return names.slice(0, -1).join(', ') + ' und ' + names.at(-1) + ' tippen …';
+    }
+
+    function initializeTyping(view) {
+        const composer = document.querySelector('.conversation-composer');
+        const indicator = view.querySelector('[data-conversation-typing]');
+        if (!composer || !indicator || !view.dataset.conversationTypingUrl || !view.dataset.conversationTypingStateUrl) { return; }
+        let isTyping = false;
+        let lastHeartbeat = 0;
+        const csrf = composer.querySelector('input[name^="_csrf"]');
+        const report = function (nextTyping) {
+            const now = Date.now();
+            if (nextTyping === isTyping && (!nextTyping || now - lastHeartbeat < 2500)) { return; }
+            isTyping = nextTyping;
+            lastHeartbeat = now;
+            const body = new URLSearchParams({typing: nextTyping ? '1' : '0'});
+            if (csrf?.name && csrf.value) { body.set(csrf.name, csrf.value); }
+            window.fetch(view.dataset.conversationTypingUrl, {
+                method: 'POST', credentials: 'same-origin',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+                body: body.toString(),
+            }).catch(function () { /* A missing indicator must never interrupt writing. */ });
+        };
+        const refresh = function () {
+            if (document.hidden) { return; }
+            window.fetch(view.dataset.conversationTypingStateUrl, {credentials: 'same-origin', headers: {'Accept': 'application/json'}})
+                .then(function (response) { return response.ok ? response.json() : null; })
+                .then(function (state) {
+                    const text = typingText(state?.users || []);
+                    indicator.textContent = text;
+                    indicator.hidden = text === '';
+                }).catch(function () { /* The chat remains usable if a heartbeat is unavailable. */ });
+        };
+        composer.addEventListener('input', function () { report(editorText(composer) !== ''); });
+        editor(composer)?.addEventListener('blur', function () { report(false); });
+        document.addEventListener('visibilitychange', function () { if (document.hidden) { report(false); } else { refresh(); } });
+        refresh();
+        window.setInterval(refresh, 2000);
     }
 
     function connectRealtime(view) {
@@ -416,6 +458,7 @@
             // A configured socket relay notifies this browser immediately. The
             // polling path below remains the safe fallback for every setup.
             connectRealtime(view);
+            initializeTyping(view);
             window.setInterval(function () {
                 if (document.hidden) { return; }
                 window.fetch(view.dataset.conversationLiveUrl, {credentials: 'same-origin', headers: {'Accept': 'application/json'}})

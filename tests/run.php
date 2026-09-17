@@ -19,6 +19,7 @@ $required = [
     'migrations/m260917_230000_add_replies_interests_and_consensus_reasons.php',
     'migrations/m260917_240000_add_message_submission_tokens.php',
     'migrations/m260918_010000_add_composer_send_shortcut.php',
+    'migrations/m260918_020000_add_typing_indicator_setting.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
     'models/ConversationMessageSubmission.php',
@@ -214,7 +215,7 @@ $composerShortcut = (string) file_get_contents($root . '/models/ConversationUser
     . (string) file_get_contents($root . '/views/conversation/view.php')
     . $browserScript
     . (string) file_get_contents($root . '/migrations/m260918_010000_add_composer_send_shortcut.php');
-foreach (['sendWithCtrlEnter', 'send_with_ctrl_enter', 'data-conversation-send-with-ctrl-enter', 'conversation-composer__shortcut-menu', 'insertEditorNewline', 'handleComposerShortcut', 'requestSubmit'] as $requiredToken) {
+foreach (['sendWithCtrlEnter', 'send_with_ctrl_enter', 'data-conversation-send-with-ctrl-enter', 'conversation-composer__shortcut-menu', 'insertEditorNewline', 'handleComposerShortcut', 'button.click()', 'typingIndicatorsEnabled', 'typing_indicators_enabled'] as $requiredToken) {
     if (!str_contains($composerShortcut, $requiredToken)) {
         fwrite(STDERR, "Global composer shortcut setting missing: $requiredToken\n");
         exit(1);
@@ -232,7 +233,7 @@ $realtime = (string) file_get_contents($root . '/services/ConversationRealtimeSe
     . (string) file_get_contents($root . '/views/conversation/view.php')
     . (string) file_get_contents($root . '/resources/conversations.js')
     . (string) file_get_contents($root . '/realtime/server.mjs');
-foreach (['ConversationRealtimeService', 'publishMessage', 'socketConnection', 'conversation.message.created', 'X-Conversations-Signature', 'data-conversation-realtime-url', 'data-conversation-realtime-token', 'data-conversation-live-messages-url', 'conversations-v1', 'connectRealtime', 'showNewMessages', 'appendNewMessages', 'timingSafeEqual', '@app/config/conversations-realtime.php'] as $requiredToken) {
+foreach (['ConversationRealtimeService', 'publishMessage', 'socketConnection', 'conversation.message.created', 'X-Conversations-Signature', 'data-conversation-realtime-url', 'data-conversation-realtime-token', 'data-conversation-live-messages-url', 'data-conversation-typing-url', 'data-conversation-typing-state-url', 'conversations-v1', 'connectRealtime', 'showNewMessages', 'appendNewMessages', 'initializeTyping', 'typingText', 'timingSafeEqual', '@app/config/conversations-realtime.php'] as $requiredToken) {
     if (!str_contains($realtime, $requiredToken)) {
         fwrite(STDERR, "Real-time conversation delivery missing: $requiredToken\n");
         exit(1);

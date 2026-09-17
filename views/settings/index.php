@@ -14,6 +14,9 @@ $form = ActiveForm::begin();
         <hr>
         <?= $form->field($model, 'sendWithCtrlEnter')->checkbox(['label' => 'STRG+Enter zum Senden verwenden']) ?>
         <p class="help-block">Standardmäßig sendet Enter; STRG+Enter erzeugt eine neue Zeile. Mit dieser Option sendet STRG+Enter, während Enter eine neue Zeile erzeugt.</p>
+        <hr>
+        <?= $form->field($model, 'typingIndicatorsEnabled')->checkbox(['label' => 'Tippen senden']) ?>
+        <p class="help-block">Wenn diese Option aktiv ist, sehen andere Personen kurz, dass du gerade in einem Chat schreibst. Wer selbst kein Tippen sendet, empfängt auch keine Tippanzeigen.</p>
         <?= Html::submitButton('Speichern', ['class' => 'btn btn-primary']) ?>
     </div>
 </div>

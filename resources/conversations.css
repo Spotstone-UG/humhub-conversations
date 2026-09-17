@@ -136,6 +136,7 @@
 .conversation-composer__reply button { background: transparent; border: 0; font-size: 1.2rem; }
 .conversation-composer__markdown-help { color: #667085; font-size: .75rem; margin-top: .35rem; }
 .conversation-composer__markdown-help summary { cursor: pointer; }
+.conversation-typing { color: var(--bs-secondary-color, #667085); font-size: .78rem; font-style: italic; min-height: 1.2rem; padding: .25rem 0; }
 .conversation-new-message-notice { bottom: 1.25rem; left: 50%; position: fixed; transform: translateX(-50%); z-index: 1100; }
 .conversation-composer__controls { align-items: center; display: flex; justify-content: space-between; margin-top: .45rem; }
 .conversation-composer__actions { align-items: center; display: inline-flex; gap: .35rem; }

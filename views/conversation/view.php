@@ -40,7 +40,7 @@ $avatar = static function ($user): string {
     ]);
 };
 ?>
-<section class="conversation-view" data-conversation-live-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-state', ['conversationId' => $conversation->id])) ?>" data-conversation-live-messages-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-messages', ['conversationId' => $conversation->id])) ?>" data-conversation-latest-message-id="<?= (int) $latestMessageId ?>"<?php if ($realtimeConnection !== null): ?> data-conversation-realtime-url="<?= Html::encode($realtimeConnection['url']) ?>" data-conversation-realtime-token="<?= Html::encode($realtimeConnection['token']) ?>"<?php endif; ?>>
+<section class="conversation-view" data-conversation-live-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-state', ['conversationId' => $conversation->id])) ?>" data-conversation-live-messages-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-messages', ['conversationId' => $conversation->id])) ?>" data-conversation-typing-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/typing', ['conversationId' => $conversation->id])) ?>" data-conversation-typing-state-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/typing-state', ['conversationId' => $conversation->id])) ?>" data-conversation-latest-message-id="<?= (int) $latestMessageId ?>"<?php if ($realtimeConnection !== null): ?> data-conversation-realtime-url="<?= Html::encode($realtimeConnection['url']) ?>" data-conversation-realtime-token="<?= Html::encode($realtimeConnection['token']) ?>"<?php endif; ?>>
     <header class="conversation-view__header">
         <div class="conversation-view__heading">
             <?php if ($conversation->parentConversation !== null): ?>
@@ -277,6 +277,8 @@ $avatar = static function ($user): string {
             <?php endforeach; ?>
         <?php endforeach; ?>
     </div>
+
+    <div class="conversation-typing" data-conversation-typing hidden aria-live="polite"></div>
 
     <?php if (!$conversation->isClosed): ?>
         <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/message', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-composer', 'id' => 'conversation-composer', 'data-conversation-draft-key' => 'conversation-draft-' . (int) $conversation->id, 'data-conversation-send-with-ctrl-enter' => $sendWithCtrlEnter ? 'true' : 'false']) ?>

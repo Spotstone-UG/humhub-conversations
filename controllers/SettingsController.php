@@ -18,12 +18,14 @@ final class SettingsController extends BaseAccountController
         $form = new ReadReceiptSettingsForm([
             'readReceiptsEnabled' => $setting === null || (bool) $setting->read_receipts_enabled,
             'sendWithCtrlEnter' => $setting !== null && (bool) $setting->send_with_ctrl_enter,
+            'typingIndicatorsEnabled' => $setting !== null && (bool) $setting->typing_indicators_enabled,
         ]);
 
         if ($form->load(Yii::$app->request->post()) && $form->validate()) {
             $setting ??= new ConversationUserSetting(['user_id' => $this->getUser()->id]);
             $setting->read_receipts_enabled = (int) $form->readReceiptsEnabled;
             $setting->send_with_ctrl_enter = (int) $form->sendWithCtrlEnter;
+            $setting->typing_indicators_enabled = (int) $form->typingIndicatorsEnabled;
             $setting->save(false);
             Yii::$app->session->setFlash('success', 'Deine Einstellung wurde gespeichert.');
             return $this->refresh();

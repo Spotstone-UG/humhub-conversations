@@ -19,6 +19,7 @@ It deliberately has no AI, automatic summaries or content screening. AI support 
 - Sender-only `Gelesen von` modal, including the reading time.
 - Account setting **Lesebestätigungen senden**. When off, a user is never added to receipts and cannot see named receipts for their own messages. Personal unread state still works.
 - Persönliche, globale Chat-Einstellung für die Senden-Taste: Standardmäßig sendet **Enter**; mit der Option **STRG+Enter zum Senden verwenden** werden die Tastenkombinationen vertauscht.
+- Die Tippanzeige ist eine persönliche, freiwillige Einstellung: **Tippen senden** ist standardmäßig aus. Wer nicht sendet, empfängt auch keine Tippanzeigen.
 - **V1.3:** Authors can edit only their own messages. Edited messages remain in place, keep files/reactions and show a discreet `bearbeitet` marker with its time. Deleting messages is intentionally not part of this version.
 - **V1.4:** Every message offers **Reaktion**. It opens the complete Unicode emoji catalogue already bundled with HumHub; people can add or remove each emoji independently. The legacy single-purpose `Gefällt mir` control is not used in Conversations.
 - **V1.5:** The emoji picker is grouped and searchable like familiar chat apps. Reactions sit compactly on the message bubble. `bearbeitet` is a small link to an immutable before/after timeline with each edit's time.
@@ -45,7 +46,8 @@ Conversation (ContentActiveRecord, normal Stream entry)
 
 conversation_user_setting
   ├── read_receipts_enabled
-  └── send_with_ctrl_enter
+  ├── send_with_ctrl_enter
+  └── typing_indicators_enabled
 ```
 
 Both the conversation and every message use HumHub content records. The conversation therefore inherits Space/container visibility, author metadata, content lifecycle and search integration. A message receives no stream channel, so it can keep native files and reactions without becoming a separate feed card. No HumHub core file is changed.
