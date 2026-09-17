@@ -2,7 +2,7 @@
 (function () {
     'use strict';
 
-    document.addEventListener('DOMContentLoaded', function () {
+    function initializeConversationUi() {
         document.querySelectorAll('#contentFormMenu [data-action-url]').forEach(function (entry) {
             const actionUrl = decodeURIComponent(entry.getAttribute('data-action-url') || '');
             if (actionUrl.indexOf('/post/post/create-form') !== -1) {
@@ -66,5 +66,11 @@
                 item.hidden = term !== '' && !item.dataset.conversationReactionName.toLocaleLowerCase().includes(term);
             });
         });
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeConversationUi, {once: true});
+    } else {
+        initializeConversationUi();
+    }
 }());
