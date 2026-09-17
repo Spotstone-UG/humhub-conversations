@@ -88,6 +88,20 @@ final class ConversationConsensusService
                 'reason' => $response?->reason,
             ];
         }
+        // Readers may reopen a completed chat with a serious concern without
+        // becoming participants in the next consent round. Keep that concern
+        // visible and auditable alongside the participant responses.
+        foreach ($responseModels as $userId => $response) {
+            if (in_array($userId, $participantIds, true) || $response->decision !== ConversationConsensusResponse::DECISION_OBJECTION || $response->user === null) {
+                continue;
+            }
+            $participantResponses[] = [
+                'user' => $response->user,
+                'decision' => $response->decision,
+                'respondedAt' => $response->responded_at,
+                'reason' => $response->reason,
+            ];
+        }
         $canWithdrawObjection = $isParticipant
             && $proposal !== null
             && $status === 'objection'
@@ -156,6 +170,47 @@ final class ConversationConsensusService
                 throw new BadRequestHttpException('Der Alternativvorschlag konnte nicht gespeichert werden.');
             }
             return $this->createProposal($conversation, $body, $user, $proposal->id);
+        });
+    }
+
+    /**
+     * A person who can read a completed chat may surface a serious concern and
+     * reopen it. The concern is retained on the completed proposal, while a
+     * later consent round still derives its participants only from messages.
+     */
+    public function reopenWithObjection(Conversation $conversation, User $user, string $reason): void
+    {
+        if (!$conversation->isClosed || !$conversation->content->canView($user)) {
+            throw new ForbiddenHttpException();
+        }
+
+        $reason = trim($reason);
+        if ($reason === '' || mb_strlen($reason) > 2000) {
+            throw new BadRequestHttpException('Ein schwerwiegender Einwand muss zwischen 1 und 2000 Zeichen lang sein.');
+        }
+
+        $proposal = $conversation->getConsensusProposals()->one();
+        if ($proposal === null) {
+            throw new BadRequestHttpException('Für diesen beendeten Chat liegt kein Konsentvorschlag vor.');
+        }
+
+        Yii::$app->db->transaction(function () use ($conversation, $proposal, $user, $reason): void {
+            Yii::$app->db->createCommand()->upsert('{{%conversation_consensus_response}}', [
+                'proposal_id' => $proposal->id,
+                'user_id' => $user->id,
+                'decision' => ConversationConsensusResponse::DECISION_OBJECTION,
+                'reason' => $reason,
+                'responded_at' => date('Y-m-d H:i:s'),
+            ], [
+                'decision' => ConversationConsensusResponse::DECISION_OBJECTION,
+                'reason' => $reason,
+                'responded_at' => date('Y-m-d H:i:s'),
+            ])->execute();
+
+            $conversation->closed_at = null;
+            if (!$conversation->save(false, ['closed_at'])) {
+                throw new BadRequestHttpException('Der Chat konnte nicht wieder geöffnet werden.');
+            }
         });
     }
 

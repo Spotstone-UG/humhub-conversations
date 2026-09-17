@@ -106,8 +106,8 @@ foreach (['parent_conversation_id', 'origin_message_id', 'closed_at', 'outcome',
     }
 }
 
-$consensus = (string) file_get_contents($root . '/services/ConversationConsensusService.php') . $conversationView . (string) file_get_contents($root . '/migrations/m260917_210000_add_consensus_workflow.php');
-foreach (['closed_by', '14 days', 'DECISION_CONSENT', 'DECISION_OBJECTION', 'Alternativvorschlag', 'conversation_consensus_proposal', 'isParticipant'] as $requiredToken) {
+$consensus = (string) file_get_contents($root . '/services/ConversationConsensusService.php') . $conversationView . (string) file_get_contents($root . '/migrations/m260917_210000_add_consensus_workflow.php') . (string) file_get_contents($root . '/views/conversation/reopen.php');
+foreach (['closed_by', '14 days', 'DECISION_CONSENT', 'DECISION_OBJECTION', 'Alternativvorschlag', 'conversation_consensus_proposal', 'isParticipant', 'reopenWithObjection', 'Schwerwiegenden Einwand', 'Konsent'] as $requiredToken) {
     if (!str_contains($consensus, $requiredToken)) {
         fwrite(STDERR, "Consensus workflow missing: $requiredToken\n");
         exit(1);

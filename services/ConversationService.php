@@ -161,13 +161,4 @@ final class ConversationService
         return true;
     }
 
-    public function reopen(Conversation $conversation): bool
-    {
-        if (!$conversation->content->canEdit()) {
-            throw new \yii\web\ForbiddenHttpException();
-        }
-
-        $conversation->closed_at = null;
-        return $conversation->save(false, ['closed_at']);
-    }
 }

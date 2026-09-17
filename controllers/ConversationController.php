@@ -282,11 +282,25 @@ final class ConversationController extends ContentContainerController
 
     public function actionReopen(int $conversationId)
     {
-        $this->forcePostRequest();
         $conversation = $this->findConversation($conversationId);
-        (new ConversationService())->reopen($conversation);
+        if (Yii::$app->user->isGuest) {
+            $this->forbidden();
+        }
+        if (Yii::$app->request->isPost) {
+            $this->forcePostRequest();
+            (new ConversationConsensusService())->reopenWithObjection(
+                $conversation,
+                Yii::$app->user->identity,
+                (string) Yii::$app->request->post('reason'),
+            );
+            Yii::$app->session->setFlash('success', 'Der Chat wurde wegen eines schwerwiegenden Einwands wieder geöffnet.');
+            return $this->redirect($conversation->url);
+        }
 
-        return $this->redirect($conversation->url);
+        return $this->renderAjax('reopen', [
+            'conversation' => $conversation,
+            'contentContainer' => $this->contentContainer,
+        ]);
     }
 
     public function actionConsensus(int $conversationId, int $proposalId)

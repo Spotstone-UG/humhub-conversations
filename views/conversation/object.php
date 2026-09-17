@@ -17,7 +17,7 @@ use humhub\helpers\Html;
         </div>
         <div class="modal-footer">
             <?= Html::button('Abbrechen', ['class' => 'btn btn-default', 'data-bs-dismiss' => 'modal']) ?>
-            <?= Html::submitButton('Widerspruch festhalten', ['class' => 'btn btn-default']) ?>
+            <?= Html::submitButton('Schwerwiegenden Einwand festhalten', ['class' => 'btn btn-danger']) ?>
         </div>
     </div>
 </div>

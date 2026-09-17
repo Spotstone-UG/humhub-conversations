@@ -55,6 +55,10 @@
 .conversation-consensus__version { color: var(--bs-secondary-color, #667085); display: block; font-size: .76rem; margin-top: .12rem; }
 .conversation-consensus--confirmed_all strong, .conversation-consensus--confirmed_timeout strong { color: #0f5132; }
 .conversation-consensus--objection strong { color: #b42318; }
+.conversation-consensus--objection { background: #fff1f0; border: 1px solid #f5b7b1; border-radius: .6rem; padding: .75rem .85rem; }
+.conversation-reopen-objection .modal-header { background: #fff1f0; border-bottom-color: #f5b7b1; }
+.conversation-reopen-objection .modal-body p { color: #6b2420; }
+.conversation-consensus__historic-objection { background: #fff1f0; border-left: 3px solid #d92d20; border-radius: .25rem; color: #6b2420; font-size: .82rem; padding: .45rem .55rem; }
 .conversation-consensus__actions { display: flex; flex-wrap: wrap; gap: .45rem; }
 .conversation-consensus__actions form { margin: 0; }
 .conversation-consensus__withdraw { margin-top: .55rem; }

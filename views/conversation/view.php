@@ -75,26 +75,26 @@ $avatar = static function ($user): string {
             <p><?= $conversation->outcome !== '' ? nl2br(Html::encode($conversation->outcome)) : 'Für diese Unterhaltung wurde kein Ergebnis festgehalten.' ?></p>
             <?php if ($consensus['proposal'] !== null): ?>
                 <div class="conversation-consensus conversation-consensus--<?= Html::encode($consensus['status']) ?>">
-                    <strong>Konsens</strong>
+                    <strong><?= $consensus['status'] === 'confirmed_all' ? 'Konsens' : 'Konsent' ?></strong>
                     <?php if ($consensus['proposal']->supersedes_proposal_id !== null): ?>
                         <span class="conversation-consensus__version">Aktuelle Fassung: Alternativvorschlag</span>
                     <?php endif; ?>
                     <?php if ($consensus['status'] === 'confirmed_all'): ?>
-                        <p>Bestätigt: Alle Teilnehmenden haben zugestimmt.</p>
+                        <p>Konsens bestätigt: Alle Teilnehmenden stimmen zu.</p>
                     <?php elseif ($consensus['status'] === 'confirmed_timeout'): ?>
-                        <p>Bestätigt: Nach 14 Tagen gab es keine schwerwiegenden Widersprüche.</p>
+                        <p>Konsent bestätigt: Nach 14 Tagen gab es keine schwerwiegenden Einwände.</p>
                     <?php elseif ($consensus['status'] === 'objection'): ?>
-                        <p>Es gibt einen Widerspruch. Ein Alternativvorschlag kann eine neue Konsensrunde starten.</p>
+                        <p><strong>Es liegt ein schwerwiegender Einwand vor.</strong> Ein Alternativvorschlag kann eine neue Konsentrunde starten.</p>
                     <?php else: ?>
-                        <p><?= $consensus['consentCount'] ?> von <?= count($consensus['participants']) ?> Teilnehmenden haben zugestimmt. Rückmeldungen sind bis <?= Yii::$app->formatter->asDate($consensus['deadline'], 'long') ?> möglich.</p>
+                        <p>Konsent in Klärung: <?= $consensus['consentCount'] ?> von <?= count($consensus['participants']) ?> Teilnehmenden haben keinen schwerwiegenden Einwand. Rückmeldungen sind bis <?= Yii::$app->formatter->asDate($consensus['deadline'], 'long') ?> möglich.</p>
                     <?php endif; ?>
                     <?php if ($consensus['canRespond']): ?>
                         <div class="conversation-consensus__actions">
                             <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/consensus', ['conversationId' => $conversation->id, 'proposalId' => $consensus['proposal']->id]), 'post') ?>
                                 <?= Html::hiddenInput('decision', ConversationConsensusResponse::DECISION_CONSENT) ?>
-                                <?= Html::submitButton(($consensus['responses'][(int) $currentUser->id] ?? null) === ConversationConsensusResponse::DECISION_CONSENT ? 'Zustimmung erteilt' : 'Zustimmen', ['class' => 'btn btn-success btn-sm']) ?>
+                                <?= Html::submitButton(($consensus['responses'][(int) $currentUser->id] ?? null) === ConversationConsensusResponse::DECISION_CONSENT ? 'Konsent gegeben' : 'Konsent geben', ['class' => 'btn btn-success btn-sm']) ?>
                             <?= Html::endForm() ?>
-                            <?= Html::a('Widerspruch', '#', [
+                            <?= Html::a('Schwerwiegenden Einwand einbringen', '#', [
                                 'class' => 'btn btn-default btn-sm',
                                 'data-action-click' => 'ui.modal.load',
                                 'data-action-url' => $contentContainer->createUrl('/conversations/conversation/object', ['conversationId' => $conversation->id, 'proposalId' => $consensus['proposal']->id]),
@@ -104,7 +104,7 @@ $avatar = static function ($user): string {
                     <?php if ($consensus['canWithdrawObjection']): ?>
                         <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/consensus', ['conversationId' => $conversation->id, 'proposalId' => $consensus['proposal']->id]), 'post', ['class' => 'conversation-consensus__withdraw']) ?>
                             <?= Html::hiddenInput('decision', ConversationConsensusResponse::DECISION_CONSENT) ?>
-                            <?= Html::submitButton('Widerspruch zurücknehmen', ['class' => 'btn btn-default btn-sm']) ?>
+                                <?= Html::submitButton('Einwand zurücknehmen', ['class' => 'btn btn-default btn-sm']) ?>
                         <?= Html::endForm() ?>
                     <?php endif; ?>
                     <?php if ($consensus['canProposeAlternative']): ?>
@@ -115,15 +115,15 @@ $avatar = static function ($user): string {
                         ]) ?>
                     <?php endif; ?>
                     <details class="conversation-consensus__participants">
-                        <summary>Teilnehmende und Rückmeldungen</summary>
+                        <summary>Rückmeldungen und schwerwiegende Einwände</summary>
                         <ul>
                             <?php foreach ($consensus['participantResponses'] as $participant): ?>
                                 <li class="conversation-consensus__participant<?= $participant['decision'] === ConversationConsensusResponse::DECISION_OBJECTION ? ' is-objecting' : '' ?>">
                                     <span><?= Html::encode($participant['user']->displayName) ?></span>
                                     <?php if ($participant['decision'] === ConversationConsensusResponse::DECISION_CONSENT): ?>
-                                        <strong>Zugestimmt</strong>
+                                        <strong>Konsent gegeben</strong>
                                     <?php elseif ($participant['decision'] === ConversationConsensusResponse::DECISION_OBJECTION): ?>
-                                        <strong>Widerspruch</strong>
+                                        <strong>Schwerwiegender Einwand</strong>
                                         <?php if ($participant['reason']): ?><small><?= Html::encode($participant['reason']) ?></small><?php endif; ?>
                                     <?php else: ?>
                                         <em>Rückmeldung steht aus</em>
@@ -140,16 +140,23 @@ $avatar = static function ($user): string {
                                     <strong><?= Html::encode($previous->createdBy?->displayName ?? 'Nicht verfügbar') ?></strong>
                                     <small>· <?= Yii::$app->formatter->asDatetime($previous->created_at, 'short') ?></small>
                                     <p><?= nl2br(Html::encode($previous->body)) ?></p>
+                                    <?php foreach ($previous->responses as $response): ?>
+                                        <?php if ($response->decision === ConversationConsensusResponse::DECISION_OBJECTION): ?>
+                                            <p class="conversation-consensus__historic-objection"><strong>Schwerwiegender Einwand von <?= Html::encode($response->user?->displayName ?? 'Nicht verfügbar') ?>:</strong> <?= Html::encode($response->reason ?? '') ?></p>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
                                 </article>
                             <?php endforeach; ?>
                         </details>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
-            <?php if ($conversation->content->canEdit()): ?>
-                <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/reopen', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-outcome__reopen']) ?>
-                    <?= Html::submitButton('Unterhaltung wieder öffnen', ['class' => 'btn btn-default btn-sm']) ?>
-                <?= Html::endForm() ?>
+            <?php if (!Yii::$app->user->isGuest): ?>
+                <?= Html::a('Schwerwiegenden Einwand einbringen und Chat wieder öffnen', '#', [
+                    'class' => 'conversation-outcome__reopen btn btn-danger btn-sm',
+                    'data-action-click' => 'ui.modal.load',
+                    'data-action-url' => $contentContainer->createUrl('/conversations/conversation/reopen', ['conversationId' => $conversation->id]),
+                ]) ?>
             <?php endif; ?>
         </section>
     <?php endif; ?>
