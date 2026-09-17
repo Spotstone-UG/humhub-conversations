@@ -20,7 +20,7 @@ $muted = $group['isMuted'];
     </header>
     <div class="conversation-overview" role="table" aria-label="Chats in <?= Html::encode($space->displayName) ?>">
         <div class="conversation-overview__head" role="row">
-            <span>Chat</span><span>Status</span><span>Letzte Aktivität</span><span>Ergebnis</span>
+            <span>Chat</span><span>Status</span><span>Letzte Aktivität</span><span>Ergebnis</span><span class="conversation-overview__interest-heading">Hinweise</span>
         </div>
         <?php foreach ($group['conversations'] as $conversation): ?>
             <?php $unread = $group['unreadCounts'][(int) $conversation->id] ?? 0; ?>
@@ -35,7 +35,6 @@ $muted = $group['isMuted'];
                         <small class="conversation-overview__subcount"><?= $conversation->getSubconversations()->count() ?> Unterthemen</small>
                     <?php endif; ?>
                     <?php if ($conversation->summary): ?><small><?= Html::encode($conversation->summary) ?></small><?php endif; ?>
-                    <?php if ($interested): ?><small class="conversation-overview__interest">Interessiert dich</small><?php endif; ?>
                 </div>
                 <div>
                     <span class="conversation-status <?= $conversation->isClosed ? 'conversation-status--closed' : '' ?>"><?= $conversation->isClosed ? 'Beendet' : 'Offen' ?></span>
@@ -43,6 +42,18 @@ $muted = $group['isMuted'];
                 </div>
                 <div><?= Yii::$app->formatter->asRelativeTime($conversation->last_message_at ?: $conversation->content->created_at) ?></div>
                 <div class="conversation-overview__outcome"><?= $conversation->isClosed && $conversation->outcome !== '' ? Html::encode($conversation->outcome) : '—' ?></div>
+                <div class="conversation-overview__interest-control">
+                    <?= Html::beginForm(['/conversations/conversation/toggle-interest', 'conversationId' => $conversation->id, 'cguid' => $space->guid], 'post') ?>
+                        <?= Html::submitButton(
+                            Html::tag('i', '', ['class' => 'fa ' . ($interested ? 'fa-bell' : 'fa-bell-slash-o'), 'aria-hidden' => 'true']) . Html::tag('span', $interested ? 'Hinweise an' : 'Hinweise aus', ['class' => 'visually-hidden']),
+                            [
+                                'class' => 'btn btn-default btn-sm conversation-overview__interest-toggle' . ($interested ? ' is-interested' : ' is-not-interested'),
+                                'title' => $interested ? 'Dieser Chat interessiert dich. Hinweise ausschalten.' : 'Dieser Chat interessiert dich nicht. Hinweise einschalten.',
+                                'aria-label' => $interested ? 'Dieser Chat interessiert dich. Hinweise ausschalten.' : 'Dieser Chat interessiert dich nicht. Hinweise einschalten.',
+                            ]
+                        ) ?>
+                    <?= Html::endForm() ?>
+                </div>
             </article>
         <?php endforeach; ?>
     </div>

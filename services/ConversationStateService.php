@@ -13,12 +13,20 @@ use Yii;
 
 final class ConversationStateService
 {
-    public function unreadCount(Conversation $conversation, User $user): int
+    /** Returns the private reading position before the current page updates it. */
+    public function lastSeenMessageId(Conversation $conversation, User $user): ?int
     {
-        $lastSeenMessageId = (int) (ConversationUserState::find()
+        $id = ConversationUserState::find()
             ->select('last_seen_message_id')
             ->where(['conversation_id' => $conversation->id, 'user_id' => $user->id])
-            ->scalar() ?? 0);
+            ->scalar();
+
+        return $id === false || $id === null ? null : (int) $id;
+    }
+
+    public function unreadCount(Conversation $conversation, User $user): int
+    {
+        $lastSeenMessageId = $this->lastSeenMessageId($conversation, $user) ?? 0;
 
         return (int) ConversationMessage::find()
             ->where(['conversation_id' => $conversation->id])
@@ -28,10 +36,7 @@ final class ConversationStateService
 
     public function firstUnreadMessageId(Conversation $conversation, User $user): ?int
     {
-        $lastSeenMessageId = (int) (ConversationUserState::find()
-            ->select('last_seen_message_id')
-            ->where(['conversation_id' => $conversation->id, 'user_id' => $user->id])
-            ->scalar() ?? 0);
+        $lastSeenMessageId = $this->lastSeenMessageId($conversation, $user) ?? 0;
 
         $id = ConversationMessage::find()->select('id')
             ->where(['conversation_id' => $conversation->id])
@@ -110,4 +115,3 @@ final class ConversationStateService
             ->all();
     }
 }
-

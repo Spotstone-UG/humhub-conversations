@@ -105,6 +105,7 @@ final class ConversationController extends ContentContainerController
     {
         $conversation = $this->findConversation($id);
         $stateService = new ConversationStateService();
+        $lastSeenMessageId = $stateService->lastSeenMessageId($conversation, Yii::$app->user->identity);
         $unreadCount = $stateService->unreadCount($conversation, Yii::$app->user->identity);
         $firstUnreadMessageId = $stateService->firstUnreadMessageId($conversation, Yii::$app->user->identity);
         $messages = $conversation->getMessages()->all();
@@ -123,6 +124,7 @@ final class ConversationController extends ContentContainerController
         return $this->render('view', [
             'conversation' => $conversation,
             'messages' => $messages,
+            'lastSeenMessageId' => $lastSeenMessageId,
             'unreadCount' => $unreadCount,
             'firstUnreadMessageId' => $firstUnreadMessageId,
             'subconversationsByOrigin' => $subconversationsByOrigin,

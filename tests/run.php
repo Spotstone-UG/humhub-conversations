@@ -170,14 +170,21 @@ foreach (['ConversationUserState', 'ConversationReadReceipt', 'readReceiptsEnabl
 
 $newInteractions = (string) file_get_contents($root . '/models/ConversationMessage.php')
     . (string) file_get_contents($root . '/services/ConversationService.php')
+    . (string) file_get_contents($root . '/services/ConversationStateService.php')
     . (string) file_get_contents($root . '/views/conversation/view.php')
     . (string) file_get_contents($root . '/resources/conversations.js')
     . (string) file_get_contents($root . '/migrations/m260917_230000_add_replies_interests_and_consensus_reasons.php');
-foreach (['reply_to_message_id', 'Antworten', 'Auswahl zitieren', 'RichTextField', 'conversation-draft-', 'reason'] as $requiredToken) {
+foreach (['reply_to_message_id', 'Antworten', 'Auswahl zitieren', 'RichTextField', 'conversation-draft-', 'reason', 'lastSeenMessageId', 'data-conversation-resume', 'replaceChildren'] as $requiredToken) {
     if (!str_contains($newInteractions, $requiredToken)) {
         fwrite(STDERR, "Reply, quote, Markdown or draft workflow missing: $requiredToken\n");
         exit(1);
     }
+}
+
+$browserScript = (string) file_get_contents($root . '/resources/conversations.js');
+if (str_contains($browserScript, 'preview.innerHTML')) {
+    fwrite(STDERR, "Unsafe reply preview markup assignment found.\n");
+    exit(1);
 }
 
 $notifications = (string) file_get_contents($root . '/services/ConversationNotifier.php')

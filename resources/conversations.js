@@ -39,7 +39,12 @@
 
     function initializeConversationUi() {
         const firstUnread = document.getElementById('first-unread-message');
-        if (firstUnread && !window.location.hash) { firstUnread.scrollIntoView({block: 'center'}); }
+        const resumeMessage = document.querySelector('[data-conversation-resume]');
+        if (!window.location.hash && (resumeMessage || firstUnread)) {
+            window.requestAnimationFrame(function () {
+                (resumeMessage || firstUnread).scrollIntoView({block: 'center'});
+            });
+        }
         if (window.location.hash.startsWith('#conversation-message-')) { flashMessage(window.location.hash.slice(1)); }
 
         document.querySelectorAll('.conversation-composer').forEach(function (composer) {
@@ -110,8 +115,16 @@
                 if (!composer || !hidden || !preview) { return; }
                 hidden.value = reply.dataset.conversationReplyId;
                 preview.hidden = false;
-                preview.innerHTML = '<strong>Antwort an ' + reply.dataset.conversationReplyAuthor + '</strong><span>' + reply.dataset.conversationReplyExcerpt + '</span><button type="button" aria-label="Antwortbezug entfernen">×</button>';
-                preview.querySelector('button')?.addEventListener('click', function () { hidden.value = ''; preview.hidden = true; preview.textContent = ''; }, {once: true});
+                // Dataset values come from names and message excerpts. Construct
+                // the preview with text nodes so they can never become markup.
+                const author = document.createElement('strong');
+                author.textContent = 'Antwort an ' + (reply.dataset.conversationReplyAuthor || '');
+                const excerpt = document.createElement('span');
+                excerpt.textContent = reply.dataset.conversationReplyExcerpt || '';
+                const clear = document.createElement('button');
+                clear.type = 'button'; clear.setAttribute('aria-label', 'Antwortbezug entfernen'); clear.textContent = '×';
+                clear.addEventListener('click', function () { hidden.value = ''; preview.hidden = true; preview.textContent = ''; }, {once: true});
+                preview.replaceChildren(author, excerpt, clear);
                 composer.scrollIntoView({block: 'center', behavior: 'smooth'});
                 editor(composer)?.focus();
                 return;

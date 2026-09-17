@@ -19,6 +19,9 @@ $currentUser = Yii::$app->user->identity;
 $uploads = Upload::withName('fileList[]');
 $composerMessage = new \humhub\modules\conversations\models\ConversationMessage($contentContainer);
 $reactionSummaries = (new ConversationReactionService())->summaries($messages, $currentUser);
+$interestTooltip = $isInterested
+    ? 'Dieser Chat interessiert dich. Klicken, um laufende Hinweise auszuschalten.'
+    : 'Dieser Chat interessiert dich nicht. Klicken, um laufende Hinweise einzuschalten.';
 $avatar = static function ($user): string {
     $words = preg_split('/\s+/u', trim((string) $user->displayName), -1, PREG_SPLIT_NO_EMPTY) ?: [];
     $initials = mb_strtoupper(mb_substr((string) ($words[0] ?? '?'), 0, 1));
@@ -43,17 +46,23 @@ $avatar = static function ($user): string {
 ?>
 <section class="conversation-view" data-conversation-live-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-state', ['conversationId' => $conversation->id])) ?>" data-conversation-latest-message-id="<?= (int) $latestMessageId ?>">
     <header class="conversation-view__header">
-        <?php if ($conversation->parentConversation !== null): ?>
-            <?= Html::a('← Zur Hauptkonversation: ' . Html::encode($conversation->parentConversation->title), $conversation->parentConversation->url, ['class' => 'conversation-view__back']) ?>
-        <?php else: ?>
-            <?= Html::a('← ' . Html::encode($contentContainer->displayName), $contentContainer->createUrl('/conversations/conversation/index'), ['class' => 'conversation-view__back']) ?>
-        <?php endif; ?>
-        <h1><?= Html::encode($conversation->title) ?></h1>
-        <?php if ($conversation->summary): ?><p><?= Html::encode($conversation->summary) ?></p><?php endif; ?>
-        <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/toggle-interest', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-view__interest']) ?>
-            <?= Html::submitButton($isInterested ? 'Interessiert dich' : 'Dieser Chat interessiert mich', ['class' => 'btn btn-default btn-sm' . ($isInterested ? ' is-active' : '')]) ?>
-        <?= Html::endForm() ?>
-        <div class="conversation-view__lifecycle">
+        <div class="conversation-view__heading">
+            <?php if ($conversation->parentConversation !== null): ?>
+                <?= Html::a('← Zur Hauptkonversation: ' . Html::encode($conversation->parentConversation->title), $conversation->parentConversation->url, ['class' => 'conversation-view__back']) ?>
+            <?php else: ?>
+                <?= Html::a('← ' . Html::encode($contentContainer->displayName), $contentContainer->createUrl('/conversations/conversation/index'), ['class' => 'conversation-view__back']) ?>
+            <?php endif; ?>
+            <h1><?= Html::encode($conversation->title) ?></h1>
+            <?php if ($conversation->summary): ?><p><?= Html::encode($conversation->summary) ?></p><?php endif; ?>
+        </div>
+        <div class="conversation-view__actions">
+            <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/toggle-interest', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-interest-toggle']) ?>
+                <?= Html::submitButton(
+                    Html::tag('i', '', ['class' => 'fa ' . ($isInterested ? 'fa-bell' : 'fa-bell-slash-o'), 'aria-hidden' => 'true'])
+                    . Html::tag('span', $isInterested ? 'Hinweise an' : 'Hinweise aus', ['class' => 'visually-hidden']),
+                    ['class' => 'btn btn-default btn-sm' . ($isInterested ? ' is-interested' : ' is-not-interested'), 'title' => $interestTooltip, 'aria-label' => $interestTooltip]
+                ) ?>
+            <?= Html::endForm() ?>
             <?php if ($conversation->isClosed): ?>
                 <span class="conversation-status conversation-status--closed">Beendet<?= $conversation->closedBy !== null ? ' von ' . Html::encode($conversation->closedBy->displayName) : '' ?></span>
             <?php endif; ?>
@@ -166,7 +175,7 @@ $avatar = static function ($user): string {
             <?php endif; ?>
             <?php $isOwn = (int) $message->content->created_by === (int) $currentUser->id; ?>
             <?php $mentionsCurrentUser = Mentioning::find()->where(['object_model' => $message::class, 'object_id' => $message->id, 'user_id' => $currentUser->id])->exists(); ?>
-            <article class="conversation-message <?= $isOwn ? 'conversation-message--own' : '' ?> <?= $message->isDeleted ? 'conversation-message--deleted' : '' ?>" id="conversation-message-<?= $message->id ?>">
+            <article class="conversation-message <?= $isOwn ? 'conversation-message--own' : '' ?> <?= $message->isDeleted ? 'conversation-message--deleted' : '' ?>" id="conversation-message-<?= $message->id ?>"<?= $lastSeenMessageId !== null && (int) $message->id === (int) $lastSeenMessageId ? ' data-conversation-resume' : '' ?>>
                 <div class="conversation-message__author">
                     <span class="conversation-avatar"><?= $avatar($message->content->createdBy) ?></span>
                     <span><?= Html::encode($message->content->createdBy->displayName) ?></span>
