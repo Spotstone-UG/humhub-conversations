@@ -1,0 +1,21 @@
+[Unit]
+Description=Conversations real-time relay
+After=network.target
+
+[Service]
+Type=simple
+User=conversations-realtime
+Group=conversations-realtime
+WorkingDirectory=/opt/conversations-realtime
+EnvironmentFile=/etc/conversations-realtime.env
+ExecStart=/usr/bin/node /opt/conversations-realtime/server.mjs
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/conversations-realtime
+
+[Install]
+WantedBy=multi-user.target

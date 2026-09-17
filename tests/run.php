@@ -17,8 +17,10 @@ $required = [
     'migrations/m260917_210000_add_consensus_workflow.php',
     'migrations/m260917_220000_add_muted_spaces.php',
     'migrations/m260917_230000_add_replies_interests_and_consensus_reasons.php',
+    'migrations/m260917_240000_add_message_submission_tokens.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
+    'models/ConversationMessageSubmission.php',
     'models/ConversationUserState.php',
     'models/ConversationReadReceipt.php',
     'models/ConversationUserSetting.php',
@@ -34,6 +36,7 @@ $required = [
     'services/ConversationConsensusService.php',
     'services/ConversationInterestService.php',
     'services/ConversationNotifier.php',
+    'services/ConversationRealtimeService.php',
     'notifications/ChatNotification.php',
     'notifications/ChatNotificationCategory.php',
     'services/ConversationReactionService.php',
@@ -47,6 +50,10 @@ $required = [
     'widgets/views/conversationForm.php',
     'widgets/PostEmojiReactionLink.php',
     'widgets/views/postEmojiReactionLink.php',
+    'config/realtime.local.php.example',
+    'realtime/server.mjs',
+    'realtime/test.mjs',
+    'realtime/conversations-realtime.service.example',
 ];
 
 foreach ($required as $file) {
@@ -174,7 +181,7 @@ $newInteractions = (string) file_get_contents($root . '/models/ConversationMessa
     . (string) file_get_contents($root . '/views/conversation/view.php')
     . (string) file_get_contents($root . '/resources/conversations.js')
     . (string) file_get_contents($root . '/migrations/m260917_230000_add_replies_interests_and_consensus_reasons.php');
-foreach (['reply_to_message_id', 'Antworten', 'Auswahl zitieren', 'RichTextField', 'conversation-draft-', 'reason', 'lastSeenMessageId', 'data-conversation-resume', 'replaceChildren'] as $requiredToken) {
+foreach (['reply_to_message_id', 'Antworten', 'Auswahl zitieren', 'appendMarkdownQuote', 'RichTextField', 'conversation-draft-', 'reason', 'lastSeenMessageId', 'data-conversation-resume', 'replaceChildren'] as $requiredToken) {
     if (!str_contains($newInteractions, $requiredToken)) {
         fwrite(STDERR, "Reply, quote, Markdown or draft workflow missing: $requiredToken\n");
         exit(1);
@@ -185,6 +192,35 @@ $browserScript = (string) file_get_contents($root . '/resources/conversations.js
 if (str_contains($browserScript, 'preview.innerHTML')) {
     fwrite(STDERR, "Unsafe reply preview markup assignment found.\n");
     exit(1);
+}
+
+$idempotency = (string) file_get_contents($root . '/services/ConversationService.php')
+    . (string) file_get_contents($root . '/controllers/ConversationController.php')
+    . (string) file_get_contents($root . '/views/conversation/view.php')
+    . $browserScript;
+foreach (['ConversationMessageSubmission', 'conversationSubmissionToken', 'conversationSubmitting', 'findSubmittedMessage'] as $requiredToken) {
+    if (!str_contains($idempotency, $requiredToken)) {
+        fwrite(STDERR, "Message idempotency protection missing: $requiredToken\n");
+        exit(1);
+    }
+}
+
+$onlineStatus = (string) file_get_contents($root . '/views/conversation/view.php');
+if (!str_contains($onlineStatus, 'UserImage::widget')) {
+    fwrite(STDERR, "Conversation avatars must use HumHub's status-aware user widget.\n");
+    exit(1);
+}
+
+$realtime = (string) file_get_contents($root . '/services/ConversationRealtimeService.php')
+    . (string) file_get_contents($root . '/controllers/ConversationController.php')
+    . (string) file_get_contents($root . '/views/conversation/view.php')
+    . (string) file_get_contents($root . '/resources/conversations.js')
+    . (string) file_get_contents($root . '/realtime/server.mjs');
+foreach (['ConversationRealtimeService', 'publishMessage', 'socketConnection', 'conversation.message.created', 'X-Conversations-Signature', 'data-conversation-realtime-url', 'data-conversation-realtime-token', 'conversations-v1', 'connectRealtime', 'showNewMessages', 'timingSafeEqual'] as $requiredToken) {
+    if (!str_contains($realtime, $requiredToken)) {
+        fwrite(STDERR, "Real-time conversation delivery missing: $requiredToken\n");
+        exit(1);
+    }
 }
 
 $notifications = (string) file_get_contents($root . '/services/ConversationNotifier.php')

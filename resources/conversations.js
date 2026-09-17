@@ -28,6 +28,42 @@
         }
     }
 
+    function moveCaretToEnd(input) {
+        input.focus();
+        if (input.value !== undefined) {
+            input.selectionStart = input.selectionEnd = input.value.length;
+            return;
+        }
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(input);
+        range.collapse(false);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+    }
+
+    function appendMarkdownQuote(composer, text) {
+        const input = editor(composer);
+        if (!input) { return; }
+        const quote = text.split('\n').map(function (line) { return '> ' + line; }).join('\n');
+        const prefix = editorText(composer) ? '\n\n' : '';
+        const insertion = prefix + quote + '\n\n';
+
+        if (input.value !== undefined) {
+            input.value += insertion;
+            input.dispatchEvent(new Event('input', {bubbles: true}));
+            moveCaretToEnd(input);
+            return;
+        }
+
+        // Insert literal Markdown, rather than a visual-only quote node. The
+        // two trailing line breaks leave the cursor in a fresh paragraph.
+        moveCaretToEnd(input);
+        document.execCommand('insertText', false, insertion);
+        input.dispatchEvent(new Event('input', {bubbles: true}));
+        window.requestAnimationFrame(function () { moveCaretToEnd(input); });
+    }
+
     function flashMessage(id) {
         const message = document.getElementById(id);
         if (!message) { return; }
@@ -35,6 +71,52 @@
         message.classList.remove('conversation-message--flash');
         window.setTimeout(function () { message.classList.add('conversation-message--flash'); }, 20);
         window.setTimeout(function () { message.classList.remove('conversation-message--flash'); }, 1800);
+    }
+
+    function showNewMessages(view) {
+        const composer = document.querySelector('.conversation-composer');
+        if (composer && editorText(composer) !== '') {
+            if (!document.querySelector('.conversation-new-message-notice')) {
+                const notice = document.createElement('button');
+                notice.type = 'button'; notice.className = 'conversation-new-message-notice btn btn-primary btn-sm'; notice.textContent = 'Neue Nachrichten anzeigen';
+                notice.addEventListener('click', function () { window.location.reload(); }, {once: true}); document.body.appendChild(notice);
+            }
+            return;
+        }
+        window.location.reload();
+    }
+
+    function connectRealtime(view) {
+        const url = view.dataset.conversationRealtimeUrl;
+        const token = view.dataset.conversationRealtimeToken;
+        if (!url || !token || !window.WebSocket) { return; }
+        let retryDelay = 1000;
+        let retryTimer = null;
+        const reconnect = function () {
+            if (retryTimer || document.hidden) { return; }
+            retryTimer = window.setTimeout(function () {
+                retryTimer = null;
+                open();
+            }, retryDelay);
+            retryDelay = Math.min(retryDelay * 2, 30000);
+        };
+        const open = function () {
+            let socket;
+            try { socket = new WebSocket(url, ['conversations-v1', token]); } catch (error) { reconnect(); return; }
+            socket.onopen = function () { retryDelay = 1000; };
+            socket.onmessage = function (event) {
+                let update;
+                try { update = JSON.parse(event.data); } catch (error) { return; }
+                if (update.type !== 'conversation.message.created' || Number(update.messageId) <= Number(view.dataset.conversationLatestMessageId)) { return; }
+                showNewMessages(view);
+            };
+            socket.onerror = function () { socket.close(); };
+            socket.onclose = reconnect;
+        };
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) { reconnect(); }
+        });
+        open();
     }
 
     function initializeConversationUi() {
@@ -54,14 +136,24 @@
             composer.addEventListener('input', function () {
                 if (key) { window.localStorage.setItem(key, editorText(composer)); }
             });
-            composer.addEventListener('submit', function () {
+            const startSubmitting = function () {
+                if (composer.dataset.conversationSubmitting === 'true') { return false; }
+                composer.dataset.conversationSubmitting = 'true';
                 const button = composer.querySelector('button[type="submit"]');
                 if (button) {
-                    button.disabled = true;
+                    button.setAttribute('aria-disabled', 'true');
+                    button.classList.add('is-submitting');
                     button.insertAdjacentHTML('beforebegin', '<span class="conversation-message__status me-2" role="status">✓ wird gespeichert</span>');
                 }
                 if (key) { window.localStorage.removeItem(key); }
-            }, {once: true});
+                return true;
+            };
+            composer.addEventListener('submit', function (event) {
+                if (!startSubmitting()) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                }
+            }, true);
             const clearAfterExplicitSend = function () {
                 // HumHub's rich-text form may submit asynchronously before the
                 // browser fires the form event. Clear both local draft stores at
@@ -69,7 +161,16 @@
                 if (key && editorText(composer) !== '') { window.localStorage.removeItem(key); }
             };
             composer.addEventListener('click', function (event) {
-                if (event.target.closest('button[type="submit"], button.btn-primary')) { clearAfterExplicitSend(); }
+                if (!event.target.closest('button[type="submit"], button.btn-primary')) { return; }
+                if (composer.dataset.conversationSubmitting === 'true') {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    return;
+                }
+                // Let the native submit event claim the first request. Some
+                // HumHub rich-text integrations submit from this click handler;
+                // the database token remains the authoritative race protection.
+                clearAfterExplicitSend();
             }, true);
             // ProseMirror keeps its own editable element. Polling its visible
             // value makes the local recovery independent from editor internals.
@@ -84,11 +185,56 @@
         if (new URLSearchParams(window.location.search).get('draftSent') === '1') {
             // This runs only after the server has persisted the message. It is
             // therefore safe to clear HumHub's local Markdown backup now.
-            if (window.jQuery) {
-                window.jQuery('#conversation-message-editor').trigger('clear');
-            } else {
-                document.getElementById('conversation-message-editor')?.dispatchEvent(new Event('clear', {bubbles: true}));
+            const editorElement = document.getElementById('conversation-message-editor');
+            const clearRichTextBackup = function () {
+                try {
+                    const backupKey = 'RichTextEditor.backup';
+                    const backup = JSON.parse(window.sessionStorage.getItem(backupKey) || '{}');
+                    delete backup['conversation-message-editor'];
+                    if (Object.keys(backup).length === 0) {
+                        window.sessionStorage.removeItem(backupKey);
+                    } else {
+                        window.sessionStorage.setItem(backupKey, JSON.stringify(backup));
+                    }
+                } catch (error) { /* A malformed third-party backup must not block sending. */ }
+            };
+            const clearEditor = function () {
+                if (window.jQuery) {
+                    window.jQuery(editorElement).trigger('clear');
+                } else {
+                    editorElement?.dispatchEvent(new Event('clear', {bubbles: true}));
+                }
+            };
+            const clearVisibleEditor = function () {
+                const input = editor(document.querySelector('.conversation-composer'));
+                if (!input || input.value !== undefined || editorText(document.querySelector('.conversation-composer')) === '') { return; }
+                // This is the browser-native editing path, so ProseMirror updates
+                // its document state even when the optional jQuery bridge is absent.
+                input.focus();
+                document.execCommand('selectAll', false);
+                document.execCommand('delete', false);
+                input.dispatchEvent(new Event('input', {bubbles: true}));
+            };
+            if (window.jQuery && editorElement) {
+                // RichText registers its clear handler during its widget init.
+                // On a fresh page, Conversations can run first; clearing again at
+                // afterInit prevents ProseMirror from restoring the sent content.
+                window.jQuery(editorElement).one('afterInit', clearEditor);
             }
+            clearEditor();
+            let clearAttempts = 0;
+            const clearAfterRichTextReady = function () {
+                clearEditor();
+                clearVisibleEditor();
+                clearRichTextBackup();
+                // Asset bundles can initialize ProseMirror after DOM ready. Retry
+                // briefly until its own clear handler has emptied the document and
+                // reset its session backup.
+                if (editorText(document.querySelector('.conversation-composer')) !== '' && clearAttempts++ < 10) {
+                    window.setTimeout(clearAfterRichTextReady, 50);
+                }
+            };
+            window.setTimeout(clearAfterRichTextReady, 50);
             window.localStorage.removeItem('conversation-draft-' + new URLSearchParams(window.location.search).get('id'));
             const cleanUrl = new URL(window.location.href);
             cleanUrl.searchParams.delete('draftSent');
@@ -183,9 +329,8 @@
             const button = document.createElement('button');
             button.type = 'button'; button.className = 'conversation-selection-quote btn btn-default btn-sm'; button.textContent = 'Auswahl zitieren';
             button.addEventListener('click', function () {
-                const quote = text.split('\n').map(function (line) { return '> ' + line; }).join('\n');
-                setEditorText(composer, (editorText(composer) ? editorText(composer) + '\n\n' : '') + quote + '\n\n');
-                button.remove(); composer.scrollIntoView({block: 'center', behavior: 'smooth'}); editor(composer)?.focus();
+                appendMarkdownQuote(composer, text);
+                button.remove(); composer.scrollIntoView({block: 'center', behavior: 'smooth'});
             }, {once: true});
             anchor.appendChild(button);
             window.setTimeout(function () { button.remove(); }, 5000);
@@ -193,22 +338,16 @@
 
         const view = document.querySelector('[data-conversation-live-url]');
         if (view) {
+            // A configured socket relay notifies this browser immediately. The
+            // polling path below remains the safe fallback for every setup.
+            connectRealtime(view);
             window.setInterval(function () {
                 if (document.hidden) { return; }
                 window.fetch(view.dataset.conversationLiveUrl, {credentials: 'same-origin', headers: {'Accept': 'application/json'}})
                     .then(function (response) { return response.ok ? response.json() : null; })
                     .then(function (state) {
                         if (!state || Number(state.latestMessageId) <= Number(view.dataset.conversationLatestMessageId)) { return; }
-                        const composer = document.querySelector('.conversation-composer');
-                        if (composer && editorText(composer) !== '') {
-                            if (!document.querySelector('.conversation-new-message-notice')) {
-                                const notice = document.createElement('button');
-                                notice.type = 'button'; notice.className = 'conversation-new-message-notice btn btn-primary btn-sm'; notice.textContent = 'Neue Nachrichten anzeigen';
-                                notice.addEventListener('click', function () { window.location.reload(); }, {once: true}); document.body.appendChild(notice);
-                            }
-                            return;
-                        }
-                        window.location.reload();
+                        showNewMessages(view);
                     }).catch(function () { /* A temporary network failure must never interrupt writing. */ });
             }, 12000);
         }

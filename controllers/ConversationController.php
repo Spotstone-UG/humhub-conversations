@@ -12,6 +12,7 @@ use humhub\modules\conversations\services\ConversationReactionService;
 use humhub\modules\conversations\services\ConversationStateService;
 use humhub\modules\conversations\services\ConversationConsensusService;
 use humhub\modules\conversations\services\ConversationInterestService;
+use humhub\modules\conversations\services\ConversationRealtimeService;
 use humhub\modules\conversations\models\ConversationConsensusProposal;
 use humhub\modules\space\models\Space;
 use humhub\modules\conversations\widgets\ConversationForm;
@@ -164,8 +165,12 @@ final class ConversationController extends ContentContainerController
             $conversation,
             $message,
             (array) Yii::$app->request->post('fileList', []),
+            (string) Yii::$app->request->post('conversationSubmissionToken'),
         );
         (new ConversationStateService())->markSeen($conversation, Yii::$app->user->identity, $createdMessage->id);
+        // The relay receives only identifiers. The recipient's browser still
+        // obtains the message through this permission-checked HumHub view.
+        (new ConversationRealtimeService())->publishMessage($conversation, $createdMessage);
 
         return $this->redirect($conversation->url . '&draftSent=1#conversation-message-' . $createdMessage->id);
     }

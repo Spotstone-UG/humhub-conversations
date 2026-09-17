@@ -7,11 +7,13 @@ use humhub\modules\conversations\assets\ConversationAsset;
 use humhub\modules\conversations\models\ConversationUserSetting;
 use humhub\modules\conversations\services\ConversationStateService;
 use humhub\modules\conversations\services\ConversationReactionService;
+use humhub\modules\conversations\services\ConversationRealtimeService;
 use humhub\modules\conversations\models\ConversationConsensusResponse;
 use humhub\modules\file\widgets\ShowFiles;
 use humhub\modules\file\widgets\Upload;
 use humhub\modules\content\widgets\richtext\RichTextField;
 use humhub\modules\user\models\Mentioning;
+use humhub\modules\user\widgets\Image as UserImage;
 
 ConversationAsset::register($this);
 $stateService = new ConversationStateService();
@@ -19,32 +21,25 @@ $currentUser = Yii::$app->user->identity;
 $uploads = Upload::withName('fileList[]');
 $composerMessage = new \humhub\modules\conversations\models\ConversationMessage($contentContainer);
 $reactionSummaries = (new ConversationReactionService())->summaries($messages, $currentUser);
+$realtimeConnection = (new ConversationRealtimeService())->socketConnection($conversation, $currentUser);
 $interestTooltip = $isInterested
     ? 'Dieser Chat interessiert dich. Klicken, um laufende Hinweise auszuschalten.'
     : 'Dieser Chat interessiert dich nicht. Klicken, um laufende Hinweise einzuschalten.';
 $avatar = static function ($user): string {
-    $words = preg_split('/\s+/u', trim((string) $user->displayName), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-    $initials = mb_strtoupper(mb_substr((string) ($words[0] ?? '?'), 0, 1));
-    if (count($words) > 1) {
-        $initials .= mb_strtoupper(mb_substr((string) end($words), 0, 1));
-    }
-    $hue = ((int) $user->id * 47) % 360;
-
-    if ($user->getProfileImage()->hasImage()) {
-        return Html::img($user->getProfileImage()->getUrl(), [
-            'class' => 'conversation-avatar__image',
-            'alt' => 'Profilbild von ' . $user->displayName,
-        ]);
-    }
-
-    return Html::tag('span', Html::encode($initials), [
-        'class' => 'conversation-avatar__fallback',
-        'style' => '--conversation-avatar-hue: ' . $hue,
-        'aria-label' => $user->displayName,
+    // The core widget owns status visibility and privacy. When HumHub's
+    // online-status provider is absent or disabled, it renders a normal avatar.
+    return UserImage::widget([
+        'user' => $user,
+        'width' => 22,
+        'height' => 22,
+        'showSelfOnlineStatus' => true,
+        'htmlOptions' => ['class' => 'conversation-avatar'],
+        'imageOptions' => ['class' => 'conversation-avatar__image'],
+        'linkOptions' => ['class' => 'conversation-avatar__link'],
     ]);
 };
 ?>
-<section class="conversation-view" data-conversation-live-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-state', ['conversationId' => $conversation->id])) ?>" data-conversation-latest-message-id="<?= (int) $latestMessageId ?>">
+<section class="conversation-view" data-conversation-live-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-state', ['conversationId' => $conversation->id])) ?>" data-conversation-latest-message-id="<?= (int) $latestMessageId ?>"<?php if ($realtimeConnection !== null): ?> data-conversation-realtime-url="<?= Html::encode($realtimeConnection['url']) ?>" data-conversation-realtime-token="<?= Html::encode($realtimeConnection['token']) ?>"<?php endif; ?>>
     <header class="conversation-view__header">
         <div class="conversation-view__heading">
             <?php if ($conversation->parentConversation !== null): ?>
@@ -286,6 +281,7 @@ $avatar = static function ($user): string {
         <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/message', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-composer', 'id' => 'conversation-composer', 'data-conversation-draft-key' => 'conversation-draft-' . (int) $conversation->id]) ?>
             <div class="conversation-composer__reply" hidden data-conversation-reply-preview></div>
             <?= Html::hiddenInput('ConversationMessage[reply_to_message_id]', '', ['data-conversation-reply-input' => true]) ?>
+            <?= Html::hiddenInput('conversationSubmissionToken', Yii::$app->security->generateRandomString(32), ['data-conversation-submission-token' => true]) ?>
             <?= RichTextField::widget([
                 'model' => $composerMessage,
                 'attribute' => 'message',

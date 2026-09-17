@@ -1,0 +1,9 @@
+<?php
+// Copy this file to realtime.local.php and replace every placeholder.
+// Keep realtime.local.php private: it contains a shared service secret.
+return [
+    'enabled' => true,
+    'publicUrl' => 'wss://testcommunity.selbsstein.events/conversations-realtime',
+    'publishUrl' => 'http://127.0.0.1:8091/publish',
+    'sharedSecret' => 'replace-with-a-random-secret-of-at-least-32-characters',
+];

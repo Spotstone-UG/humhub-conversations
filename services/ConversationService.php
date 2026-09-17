@@ -8,8 +8,10 @@ use humhub\modules\content\models\Content;
 use humhub\modules\conversations\models\Conversation;
 use humhub\modules\conversations\models\ConversationMessage;
 use humhub\modules\conversations\models\ConversationMessageRevision;
+use humhub\modules\conversations\models\ConversationMessageSubmission;
 use humhub\modules\file\models\File;
 use Yii;
+use yii\db\IntegrityException;
 use yii\web\BadRequestHttpException;
 
 final class ConversationService
@@ -44,11 +46,21 @@ final class ConversationService
     }
 
     /** @param string[] $fileGuids */
-    public function postMessage(Conversation $conversation, ConversationMessage $message, array $fileGuids = []): ConversationMessage
+    public function postMessage(Conversation $conversation, ConversationMessage $message, array $fileGuids = [], string $submissionToken = ''): ConversationMessage
     {
         if (!$conversation->content->canView() || !(new ConversationMessage($conversation->content->container))->content->canEdit()) {
             throw new \yii\web\ForbiddenHttpException();
         }
+        $submissionToken = trim($submissionToken);
+        if (!preg_match('/^[A-Za-z0-9_-]{22,64}$/', $submissionToken)) {
+            throw new BadRequestHttpException('Die Nachricht konnte nicht eindeutig zugeordnet werden. Bitte sende sie erneut.');
+        }
+
+        $existing = $this->findSubmittedMessage($conversation, $submissionToken);
+        if ($existing !== null) {
+            return $existing;
+        }
+
         $message->reply_to_message_id = $message->reply_to_message_id === '' ? null : $message->reply_to_message_id;
         if ($message->reply_to_message_id !== null && !ConversationMessage::find()->where([
             'id' => $message->reply_to_message_id,
@@ -57,18 +69,55 @@ final class ConversationService
             throw new BadRequestHttpException('Die zitierte Nachricht gehört nicht zu diesem Chat.');
         }
 
-        return Yii::$app->db->transaction(function () use ($conversation, $message, $fileGuids): ConversationMessage {
-            $message->conversation_id = $conversation->id;
-            $message->content->container = $conversation->content->container;
-            $message->content->visibility = $conversation->content->visibility ?? Content::VISIBILITY_PRIVATE;
+        try {
+            return Yii::$app->db->transaction(function () use ($conversation, $message, $fileGuids, $submissionToken): ConversationMessage {
+                // Claim the token before creating content. The unique database index
+                // makes repeated clicks, refreshes and concurrent HTTP retries idempotent.
+                $submission = new ConversationMessageSubmission([
+                    'conversation_id' => $conversation->id,
+                    'user_id' => Yii::$app->user->id,
+                    'submission_token' => $submissionToken,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
+                if (!$submission->save()) {
+                    throw new BadRequestHttpException('Die Nachricht konnte nicht gespeichert werden.');
+                }
 
-            if (!$message->save()) {
-                throw new BadRequestHttpException('Die Nachricht konnte nicht gespeichert werden.');
+                $message->conversation_id = $conversation->id;
+                $message->content->container = $conversation->content->container;
+                $message->content->visibility = $conversation->content->visibility ?? Content::VISIBILITY_PRIVATE;
+
+                if (!$message->save()) {
+                    throw new BadRequestHttpException('Die Nachricht konnte nicht gespeichert werden.');
+                }
+
+                $message->fileManager->attach(array_filter($fileGuids, 'is_string'));
+                $submission->message_id = $message->id;
+                if (!$submission->save(false, ['message_id'])) {
+                    throw new BadRequestHttpException('Die Nachricht konnte nicht gespeichert werden.');
+                }
+                return $message;
+            });
+        } catch (IntegrityException) {
+            // Another request with this token won the race. Return its message,
+            // so both browser requests converge on exactly one persisted record.
+            $existing = $this->findSubmittedMessage($conversation, $submissionToken);
+            if ($existing !== null) {
+                return $existing;
             }
+            throw new BadRequestHttpException('Die Nachricht wird bereits gespeichert. Bitte aktualisiere den Chat.');
+        }
+    }
 
-            $message->fileManager->attach(array_filter($fileGuids, 'is_string'));
-            return $message;
-        });
+    private function findSubmittedMessage(Conversation $conversation, string $submissionToken): ?ConversationMessage
+    {
+        $submission = ConversationMessageSubmission::findOne([
+            'conversation_id' => $conversation->id,
+            'user_id' => Yii::$app->user->id,
+            'submission_token' => $submissionToken,
+        ]);
+
+        return $submission?->message;
     }
 
     /**
