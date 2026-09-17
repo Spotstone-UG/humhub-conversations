@@ -16,6 +16,8 @@ $required = [
     'models/ConversationUserSetting.php',
     'services/ConversationStateService.php',
     'controllers/ConversationController.php',
+    'widgets/ConversationForm.php',
+    'widgets/views/conversationForm.php',
 ];
 
 foreach ($required as $file) {
@@ -37,6 +39,21 @@ if (!str_contains($messageModel, 'protected $streamChannel = null')) {
     exit(1);
 }
 
+$module = (string) file_get_contents($root . '/Module.php');
+$card = (string) file_get_contents($root . '/widgets/ConversationCard.php');
+foreach (['getContentClasses', 'Conversation::class'] as $requiredToken) {
+    if (!str_contains($module, $requiredToken)) {
+        fwrite(STDERR, "Conversation is not registered for the standard stream composer: $requiredToken\n");
+        exit(1);
+    }
+}
+foreach (['WallStreamEntryWidget', 'ConversationForm::class', 'createFormSortOrder = 0'] as $requiredToken) {
+    if (!str_contains($card, $requiredToken)) {
+        fwrite(STDERR, "Conversation is not configured as the primary stream composer: $requiredToken\n");
+        exit(1);
+    }
+}
+
 $stateService = (string) file_get_contents($root . '/services/ConversationStateService.php');
 foreach (['ConversationUserState', 'ConversationReadReceipt', 'readReceiptsEnabled'] as $requiredToken) {
     if (!str_contains($stateService, $requiredToken)) {
@@ -46,4 +63,3 @@ foreach (['ConversationUserState', 'ConversationReadReceipt', 'readReceiptsEnabl
 }
 
 echo "Static Conversations module checks passed.\n";
-

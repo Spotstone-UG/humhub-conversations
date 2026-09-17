@@ -3,6 +3,18 @@
     'use strict';
 
     document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('#contentFormMenu [data-action-url]').forEach(function (entry) {
+            const actionUrl = decodeURIComponent(entry.getAttribute('data-action-url') || '');
+            if (actionUrl.indexOf('/post/post/create-form') !== -1) {
+                const listEntry = entry.closest('li');
+                if (listEntry) {
+                    listEntry.remove();
+                } else {
+                    entry.remove();
+                }
+            }
+        });
+
         const firstUnread = document.getElementById('first-unread-message');
         if (firstUnread && !window.location.hash) {
             firstUnread.scrollIntoView({block: 'center'});

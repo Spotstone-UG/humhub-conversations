@@ -5,6 +5,7 @@ namespace humhub\modules\conversations;
 
 use humhub\modules\content\components\ContentContainerActiveRecord;
 use humhub\modules\content\components\ContentContainerModule;
+use humhub\modules\conversations\models\Conversation;
 use humhub\modules\conversations\permissions\CreateConversation;
 use humhub\modules\space\models\Space;
 
@@ -25,6 +26,17 @@ final class Module extends ContentContainerModule
         return 'Kompakte Conversation-Karten im Stream mit einer eigenen chatartigen Gesprächsansicht.';
     }
 
+    /**
+     * Makes Conversation available to HumHub's standard stream composer.
+     *
+     * The accompanying wall entry gives it the first sort position, so it is
+     * the initial composer form in Spaces where this module is enabled.
+     */
+    public function getContentClasses(?ContentContainerActiveRecord $contentContainer = null): array
+    {
+        return [Conversation::class];
+    }
+
     public function getContainerPermissions($contentContainer = null): array
     {
         return [new CreateConversation()];
@@ -35,4 +47,3 @@ final class Module extends ContentContainerModule
     {
     }
 }
-

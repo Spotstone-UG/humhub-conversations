@@ -4,11 +4,13 @@
 namespace humhub\modules\conversations\controllers;
 
 use humhub\modules\content\components\ContentContainerController;
+use humhub\modules\content\widgets\WallCreateContentForm;
 use humhub\modules\conversations\models\Conversation;
 use humhub\modules\conversations\models\ConversationMessage;
 use humhub\modules\conversations\services\ConversationService;
 use humhub\modules\conversations\services\ConversationStateService;
 use humhub\modules\space\models\Space;
+use humhub\modules\conversations\widgets\ConversationForm;
 use Yii;
 use yii\web\NotFoundHttpException;
 
@@ -40,6 +42,38 @@ final class ConversationController extends ContentContainerController
         }
 
         return $this->render('create', ['conversation' => $conversation, 'contentContainer' => $this->contentContainer]);
+    }
+
+    /**
+     * Returns the Conversation form for HumHub's standard stream composer.
+     */
+    public function actionCreateForm(): string
+    {
+        if (!(new Conversation($this->contentContainer))->content->canEdit()) {
+            $this->forbidden();
+        }
+
+        return $this->renderAjaxPartial(ConversationForm::widget([
+            'contentContainer' => $this->contentContainer,
+        ]));
+    }
+
+    /**
+     * Creates a Conversation from the standard stream composer.
+     */
+    public function actionPost()
+    {
+        $this->forcePostRequest();
+        $conversation = new Conversation($this->contentContainer);
+        if (!$conversation->content->canEdit()) {
+            $this->forbidden();
+        }
+
+        $conversation->load(Yii::$app->request->post(), 'Conversation');
+
+        return Conversation::getDb()->transaction(
+            fn() => WallCreateContentForm::create($conversation, $this->contentContainer),
+        );
     }
 
     public function actionView(int $id): string
@@ -105,4 +139,3 @@ final class ConversationController extends ContentContainerController
         return $conversation;
     }
 }
-

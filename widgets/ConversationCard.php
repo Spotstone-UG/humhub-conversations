@@ -3,13 +3,17 @@
 
 namespace humhub\modules\conversations\widgets;
 
-use humhub\modules\content\widgets\stream\StreamEntryWidget;
+use humhub\modules\content\widgets\stream\WallStreamEntryWidget;
 use humhub\modules\conversations\assets\ConversationAsset;
 use humhub\modules\conversations\services\ConversationStateService;
 use Yii;
 
-final class ConversationCard extends StreamEntryWidget
+final class ConversationCard extends WallStreamEntryWidget
 {
+    public $createRoute = '/conversations/conversation/create-form';
+    public $createFormClass = ConversationForm::class;
+    public $createFormSortOrder = 0;
+
     protected function renderBody(): string
     {
         ConversationAsset::register($this->view);
@@ -21,9 +25,18 @@ final class ConversationCard extends StreamEntryWidget
         ]);
     }
 
+    /**
+     * The complete stream card is rendered directly by renderBody().
+     * In particular this intentionally omits HumHub's comment footer: replies
+     * belong in the dedicated conversation view, never in the stream.
+     */
+    protected function renderContent(): string
+    {
+        return '';
+    }
+
     public function getAttributes(): array
     {
         return ['class' => 'conversation-stream-entry'];
     }
 }
-
