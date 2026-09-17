@@ -8,6 +8,7 @@ use humhub\modules\content\widgets\WallEntryLinks;
 use humhub\modules\like\widgets\LikeLink;
 use humhub\modules\post\models\Post;
 use humhub\modules\conversations\widgets\PostEmojiReactionLink;
+use humhub\modules\space\widgets\Menu as SpaceMenu;
 use humhub\helpers\ControllerHelper;
 use Yii;
 
@@ -45,6 +46,21 @@ final class Events
             'url' => ['/conversations/settings/index'],
             'sortOrder' => 112,
             'isActive' => ControllerHelper::isActivePath('conversations', 'settings'),
+        ]));
+    }
+
+    /** Keeps Conversations reachable from every enabled Space without a top tab. */
+    public static function onSpaceMenuInit($event): void
+    {
+        /** @var SpaceMenu $menu */
+        $menu = $event->sender;
+        $menu->addEntry(new MenuLink([
+            'id' => 'space-conversations',
+            'label' => 'Conversations',
+            'icon' => 'comments-o',
+            'url' => $menu->space->createUrl('/conversations/conversation/index'),
+            'sortOrder' => 110,
+            'isActive' => ControllerHelper::isActivePath('conversations', 'conversation'),
         ]));
     }
 }

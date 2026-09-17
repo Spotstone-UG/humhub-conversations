@@ -114,6 +114,14 @@ foreach (['PostEmojiReaction', 'EmojiPaletteService', 'onWallEntryLinksInit', 'o
     }
 }
 
+$menuIntegration = (string) file_get_contents($root . '/Events.php') . (string) file_get_contents($root . '/config.php');
+foreach (['onSpaceMenuInit', 'SpaceMenu::EVENT_INIT', 'space-conversations'] as $requiredToken) {
+    if (!str_contains($menuIntegration, $requiredToken)) {
+        fwrite(STDERR, "Persistent Space menu integration missing: $requiredToken\n");
+        exit(1);
+    }
+}
+
 $stateService = (string) file_get_contents($root . '/services/ConversationStateService.php');
 foreach (['ConversationUserState', 'ConversationReadReceipt', 'readReceiptsEnabled'] as $requiredToken) {
     if (!str_contains($stateService, $requiredToken)) {

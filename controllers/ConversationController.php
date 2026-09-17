@@ -22,11 +22,31 @@ final class ConversationController extends ContentContainerController
 
     public function actionIndex(): string
     {
-        $conversations = Conversation::find()
+        $allConversations = Conversation::find()
             ->contentContainer($this->contentContainer)
             ->readable()
             ->orderBy(['conversation.last_message_at' => SORT_DESC, 'conversation.id' => SORT_DESC])
             ->all();
+
+        // Keep every Unterthema immediately below its main conversation. A
+        // global activity sort makes the hierarchy hard to scan in the overview.
+        $topLevel = [];
+        $children = [];
+        foreach ($allConversations as $item) {
+            if ($item->parent_conversation_id === null) {
+                $topLevel[] = $item;
+            } else {
+                $children[(int) $item->parent_conversation_id][] = $item;
+            }
+        }
+
+        $conversations = [];
+        foreach ($topLevel as $parent) {
+            $conversations[] = $parent;
+            foreach ($children[(int) $parent->id] ?? [] as $child) {
+                $conversations[] = $child;
+            }
+        }
 
         return $this->render('index', ['conversations' => $conversations, 'contentContainer' => $this->contentContainer]);
     }
