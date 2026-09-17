@@ -53,7 +53,22 @@
             return;
         }
         input.focus();
-        document.execCommand('insertLineBreak', false);
+        // Let HumHub's ProseMirror editor handle precisely the same shortcut
+        // as a physical Shift+Enter. Direct execCommand() calls are ignored by
+        // this editor and previously left only whitespace in the draft.
+        const newlineEvent = new KeyboardEvent('keydown', {
+            key: 'Enter',
+            code: 'Enter',
+            keyCode: 13,
+            which: 13,
+            shiftKey: true,
+            bubbles: true,
+            cancelable: true,
+        });
+        input.dispatchEvent(newlineEvent);
+        if (!newlineEvent.defaultPrevented) {
+            document.execCommand('insertHTML', false, '<br>');
+        }
         input.dispatchEvent(new Event('input', {bubbles: true}));
     }
 
