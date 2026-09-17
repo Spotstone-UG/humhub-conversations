@@ -83,3 +83,5 @@ HUMHUB_ROOT=/path/to/humhub php tests/compatibility.php
 ```
 
 Run PHP syntax checks for every PHP file and the acceptance plan above before a production release. The module uses AGPL-3.0-only source headers.
+
+GitHub Actions also runs PHP linting and the repository-level invariants for PHP 8.2 and 8.3 on every pull request and every push to `main`.
