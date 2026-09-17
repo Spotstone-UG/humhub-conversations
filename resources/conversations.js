@@ -30,13 +30,16 @@
             }, {once: true});
         });
 
-        document.querySelectorAll('[data-conversation-reaction-search]').forEach(function (search) {
-            search.addEventListener('input', function () {
-                const term = search.value.trim().toLocaleLowerCase();
-                const picker = search.closest('.conversation-reaction-picker');
-                picker?.querySelectorAll('[data-conversation-reaction-name]').forEach(function (item) {
-                    item.hidden = term !== '' && !item.dataset.conversationReactionName.toLocaleLowerCase().includes(term);
-                });
+        document.addEventListener('input', function (event) {
+            const search = event.target;
+            if (!(search instanceof HTMLInputElement) || !search.matches('[data-conversation-reaction-search]')) {
+                return;
+            }
+
+            const term = search.value.trim().toLocaleLowerCase();
+            const picker = search.closest('.conversation-reaction-picker');
+            picker?.querySelectorAll('[data-conversation-reaction-name]').forEach(function (item) {
+                item.hidden = term !== '' && !item.dataset.conversationReactionName.toLocaleLowerCase().includes(term);
             });
         });
     });
