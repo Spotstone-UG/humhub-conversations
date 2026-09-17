@@ -10,12 +10,15 @@ $required = [
     'module.json',
     'migrations/m260917_150000_initial.php',
     'migrations/m260917_160000_add_message_edit_marker.php',
+    'migrations/m260917_170000_add_emoji_reactions.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
     'models/ConversationUserState.php',
     'models/ConversationReadReceipt.php',
     'models/ConversationUserSetting.php',
+    'models/ConversationReaction.php',
     'services/ConversationStateService.php',
+    'services/ConversationReactionService.php',
     'controllers/ConversationController.php',
     'widgets/ConversationForm.php',
     'widgets/views/conversationForm.php',
@@ -60,6 +63,15 @@ $messageController = (string) file_get_contents($root . '/controllers/Conversati
 foreach (['editMessage', 'created_by', 'edited_at'] as $requiredToken) {
     if (!str_contains($messageService . $messageController, $requiredToken)) {
         fwrite(STDERR, "Message editing protection missing: $requiredToken\n");
+        exit(1);
+    }
+}
+
+$reactionService = (string) file_get_contents($root . '/services/ConversationReactionService.php');
+$reactionController = (string) file_get_contents($root . '/controllers/ConversationController.php');
+foreach (['toggle', 'EmojiMap::getData', 'actionReact'] as $requiredToken) {
+    if (!str_contains($reactionService . $reactionController, $requiredToken)) {
+        fwrite(STDERR, "Emoji reaction implementation missing: $requiredToken\n");
         exit(1);
     }
 }

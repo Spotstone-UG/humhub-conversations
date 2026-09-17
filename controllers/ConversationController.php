@@ -8,9 +8,11 @@ use humhub\modules\content\widgets\WallCreateContentForm;
 use humhub\modules\conversations\models\Conversation;
 use humhub\modules\conversations\models\ConversationMessage;
 use humhub\modules\conversations\services\ConversationService;
+use humhub\modules\conversations\services\ConversationReactionService;
 use humhub\modules\conversations\services\ConversationStateService;
 use humhub\modules\space\models\Space;
 use humhub\modules\conversations\widgets\ConversationForm;
+use humhub\libs\EmojiMap;
 use Yii;
 use yii\web\NotFoundHttpException;
 
@@ -143,6 +145,46 @@ final class ConversationController extends ContentContainerController
             'message' => $message,
             'contentContainer' => $this->contentContainer,
         ]);
+    }
+
+    /** Opens the complete HumHub Unicode emoji catalogue for a message. */
+    public function actionReactionPicker(int $conversationId, int $messageId): string
+    {
+        $conversation = $this->findConversation($conversationId);
+        $message = $this->findMessage($conversation, $messageId);
+        if (!$message->content->canView()) {
+            $this->forbidden();
+        }
+
+        $emojis = [];
+        foreach (EmojiMap::getData() as $name => $emoji) {
+            $emojis[$emoji] ??= $name;
+        }
+        asort($emojis, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $this->renderAjax('reaction-picker', [
+            'conversation' => $conversation,
+            'message' => $message,
+            'emojis' => $emojis,
+            'contentContainer' => $this->contentContainer,
+        ]);
+    }
+
+    /** Toggles a voluntary emoji reaction from the current user. */
+    public function actionReact(int $conversationId, int $messageId)
+    {
+        $this->forcePostRequest();
+        $conversation = $this->findConversation($conversationId);
+        $message = $this->findMessage($conversation, $messageId);
+        $emoji = (string) Yii::$app->request->post('emoji');
+
+        if (!in_array($emoji, EmojiMap::getData(), true)) {
+            throw new \yii\web\BadRequestHttpException('Unbekannte Emoji-Reaktion.');
+        }
+
+        (new ConversationReactionService())->toggle($message, Yii::$app->user->identity, $emoji);
+
+        return $this->redirect($conversation->url . '#conversation-message-' . $message->id);
     }
 
     public function actionReceipts(int $conversationId, int $messageId): string

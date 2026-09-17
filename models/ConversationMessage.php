@@ -54,6 +54,11 @@ final class ConversationMessage extends ContentActiveRecord
         return $this->hasMany(ConversationReadReceipt::class, ['message_id' => 'id']);
     }
 
+    public function getReactions(): ActiveQuery
+    {
+        return $this->hasMany(ConversationReaction::class, ['message_id' => 'id']);
+    }
+
     public function getContentName(): string
     {
         return Yii::t('ConversationsModule.base', 'Conversation message');

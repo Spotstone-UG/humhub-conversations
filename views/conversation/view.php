@@ -6,14 +6,15 @@ use humhub\modules\content\widgets\richtext\RichText;
 use humhub\modules\conversations\assets\ConversationAsset;
 use humhub\modules\conversations\models\ConversationUserSetting;
 use humhub\modules\conversations\services\ConversationStateService;
+use humhub\modules\conversations\services\ConversationReactionService;
 use humhub\modules\file\widgets\ShowFiles;
 use humhub\modules\file\widgets\Upload;
-use humhub\modules\like\widgets\LikeLink;
 
 ConversationAsset::register($this);
 $stateService = new ConversationStateService();
 $currentUser = Yii::$app->user->identity;
 $uploads = Upload::withName('fileList[]');
+$reactionSummaries = (new ConversationReactionService())->summaries($messages, $currentUser);
 ?>
 <section class="conversation-view">
     <header class="conversation-view__header">
@@ -49,7 +50,11 @@ $uploads = Upload::withName('fileList[]');
                     <?php endif; ?>
                 </div>
                 <div class="conversation-message__actions">
-                    <?php if (Yii::$app->getModule('like') !== null): ?><?= LikeLink::widget(['object' => $message]) ?><?php endif; ?>
+                    <?= Html::a('☺ Reaktion', '#', [
+                        'class' => 'conversation-message__reaction-trigger',
+                        'data-action-click' => 'ui.modal.load',
+                        'data-action-url' => $contentContainer->createUrl('/conversations/conversation/reaction-picker', ['conversationId' => $conversation->id, 'messageId' => $message->id]),
+                    ]) ?>
                     <?php if ($isOwn): ?>
                         <?= Html::a('Bearbeiten', '#', [
                             'class' => 'conversation-message__edit',
@@ -58,6 +63,19 @@ $uploads = Upload::withName('fileList[]');
                         ]) ?>
                     <?php endif; ?>
                 </div>
+                <?php if (isset($reactionSummaries[$message->id])): ?>
+                    <div class="conversation-message__reactions" aria-label="Reaktionen">
+                        <?php foreach ($reactionSummaries[$message->id] as $reaction): ?>
+                            <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/react', ['conversationId' => $conversation->id, 'messageId' => $message->id]), 'post', ['class' => 'conversation-message__reaction-form']) ?>
+                                <?= Html::hiddenInput('emoji', $reaction['emoji']) ?>
+                                <?= Html::submitButton($reaction['emoji'] . ' ' . $reaction['count'], [
+                                    'class' => 'conversation-message__reaction' . ($reaction['mine'] ? ' conversation-message__reaction--mine' : ''),
+                                    'title' => $reaction['mine'] ? 'Eigene Reaktion entfernen' : 'Mit dieser Reaktion antworten',
+                                ]) ?>
+                            <?= Html::endForm() ?>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
                 <?php if ($message->edited_at !== null): ?>
                     <div class="conversation-message__edited" title="Bearbeitet am <?= Html::encode(Yii::$app->formatter->asDatetime($message->edited_at, 'short')) ?>">bearbeitet</div>
                 <?php endif; ?>
