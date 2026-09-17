@@ -40,7 +40,7 @@ $avatar = static function ($user): string {
     ]);
 };
 ?>
-<section class="conversation-view" data-conversation-live-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-state', ['conversationId' => $conversation->id])) ?>" data-conversation-latest-message-id="<?= (int) $latestMessageId ?>"<?php if ($realtimeConnection !== null): ?> data-conversation-realtime-url="<?= Html::encode($realtimeConnection['url']) ?>" data-conversation-realtime-token="<?= Html::encode($realtimeConnection['token']) ?>"<?php endif; ?>>
+<section class="conversation-view" data-conversation-live-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-state', ['conversationId' => $conversation->id])) ?>" data-conversation-live-messages-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-messages', ['conversationId' => $conversation->id])) ?>" data-conversation-latest-message-id="<?= (int) $latestMessageId ?>"<?php if ($realtimeConnection !== null): ?> data-conversation-realtime-url="<?= Html::encode($realtimeConnection['url']) ?>" data-conversation-realtime-token="<?= Html::encode($realtimeConnection['token']) ?>"<?php endif; ?>>
     <header class="conversation-view__header">
         <div class="conversation-view__heading">
             <?php if ($conversation->parentConversation !== null): ?>

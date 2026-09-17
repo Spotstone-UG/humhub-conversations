@@ -105,6 +105,24 @@ final class ConversationController extends ContentContainerController
     public function actionView(int $id): string
     {
         $conversation = $this->findConversation($id);
+        return $this->render('view', $this->viewData($conversation));
+    }
+
+    /**
+     * Returns an updated chat fragment for the live transport. The browser
+     * extracts and appends only the messages it does not have yet, avoiding a
+     * disruptive full-page reload while keeping HumHub's regular view and
+     * permission checks authoritative.
+     */
+    public function actionLiveMessages(int $conversationId): string
+    {
+        $conversation = $this->findConversation($conversationId);
+        return $this->renderAjax('view', $this->viewData($conversation));
+    }
+
+    /** @return array<string, mixed> */
+    private function viewData(Conversation $conversation): array
+    {
         $stateService = new ConversationStateService();
         $lastSeenMessageId = $stateService->lastSeenMessageId($conversation, Yii::$app->user->identity);
         $unreadCount = $stateService->unreadCount($conversation, Yii::$app->user->identity);
@@ -122,7 +140,7 @@ final class ConversationController extends ContentContainerController
         $stateService->markSeen($conversation, Yii::$app->user->identity, $lastShownMessageId);
 
         $consensusService = new ConversationConsensusService();
-        return $this->render('view', [
+        return [
             'conversation' => $conversation,
             'messages' => $messages,
             'lastSeenMessageId' => $lastSeenMessageId,
@@ -134,7 +152,7 @@ final class ConversationController extends ContentContainerController
             'canEnd' => !$conversation->isClosed && $conversation->content->canEdit() && $consensusService->isParticipant($conversation, Yii::$app->user->identity),
             'isInterested' => (new ConversationInterestService())->isInterested($conversation, Yii::$app->user->identity),
             'latestMessageId' => $lastShownMessageId ?? 0,
-        ]);
+        ];
     }
 
     /** Small polling endpoint; a later socket provider can replace only the client transport. */

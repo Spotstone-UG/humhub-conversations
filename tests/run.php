@@ -232,7 +232,7 @@ $realtime = (string) file_get_contents($root . '/services/ConversationRealtimeSe
     . (string) file_get_contents($root . '/views/conversation/view.php')
     . (string) file_get_contents($root . '/resources/conversations.js')
     . (string) file_get_contents($root . '/realtime/server.mjs');
-foreach (['ConversationRealtimeService', 'publishMessage', 'socketConnection', 'conversation.message.created', 'X-Conversations-Signature', 'data-conversation-realtime-url', 'data-conversation-realtime-token', 'conversations-v1', 'connectRealtime', 'showNewMessages', 'timingSafeEqual', '@app/config/conversations-realtime.php'] as $requiredToken) {
+foreach (['ConversationRealtimeService', 'publishMessage', 'socketConnection', 'conversation.message.created', 'X-Conversations-Signature', 'data-conversation-realtime-url', 'data-conversation-realtime-token', 'data-conversation-live-messages-url', 'conversations-v1', 'connectRealtime', 'showNewMessages', 'appendNewMessages', 'timingSafeEqual', '@app/config/conversations-realtime.php'] as $requiredToken) {
     if (!str_contains($realtime, $requiredToken)) {
         fwrite(STDERR, "Real-time conversation delivery missing: $requiredToken\n");
         exit(1);

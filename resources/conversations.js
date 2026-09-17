@@ -88,17 +88,42 @@
         window.setTimeout(function () { message.classList.remove('conversation-message--flash'); }, 1800);
     }
 
+    function appendNewMessages(view, html) {
+        const source = new DOMParser().parseFromString(html, 'text/html').querySelector('.conversation-view');
+        const targetMessages = view.querySelector('.conversation-view__messages');
+        const sourceMessages = source?.querySelector('.conversation-view__messages');
+        if (!source || !targetMessages || !sourceMessages) { return false; }
+
+        const knownId = Number(view.dataset.conversationLatestMessageId || 0);
+        const items = Array.from(sourceMessages.children);
+        let firstNewIndex = items.findIndex(function (item) {
+            return item.classList.contains('conversation-message')
+                && Number((item.id || '').replace('conversation-message-', '')) > knownId;
+        });
+        if (firstNewIndex === -1) { return false; }
+        if (firstNewIndex > 0 && items[firstNewIndex - 1].classList.contains('conversation-date-divider')) { firstNewIndex--; }
+
+        const appended = [];
+        items.slice(firstNewIndex).forEach(function (item) {
+            const clone = document.importNode(item, true);
+            targetMessages.appendChild(clone);
+            if (clone.classList.contains('conversation-message')) { appended.push(clone); }
+        });
+        const latestId = source.dataset.conversationLatestMessageId;
+        if (latestId) { view.dataset.conversationLatestMessageId = latestId; }
+        const newest = appended.at(-1);
+        if (newest) { newest.scrollIntoView({block: 'start', behavior: 'smooth'}); }
+        return appended.length > 0;
+    }
+
     function showNewMessages(view) {
-        const composer = document.querySelector('.conversation-composer');
-        if (composer && editorText(composer) !== '') {
-            if (!document.querySelector('.conversation-new-message-notice')) {
-                const notice = document.createElement('button');
-                notice.type = 'button'; notice.className = 'conversation-new-message-notice btn btn-primary btn-sm'; notice.textContent = 'Neue Nachrichten anzeigen';
-                notice.addEventListener('click', function () { window.location.reload(); }, {once: true}); document.body.appendChild(notice);
-            }
-            return;
-        }
-        window.location.reload();
+        if (view.dataset.conversationLoadingMessages === 'true' || !view.dataset.conversationLiveMessagesUrl) { return; }
+        view.dataset.conversationLoadingMessages = 'true';
+        window.fetch(view.dataset.conversationLiveMessagesUrl, {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+            .then(function (response) { return response.ok ? response.text() : ''; })
+            .then(function (html) { if (html) { appendNewMessages(view, html); } })
+            .catch(function () { /* Keep the next socket/poll attempt available after a temporary failure. */ })
+            .finally(function () { delete view.dataset.conversationLoadingMessages; });
     }
 
     function connectRealtime(view) {
