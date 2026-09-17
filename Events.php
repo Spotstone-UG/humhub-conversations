@@ -5,6 +5,7 @@ namespace humhub\modules\conversations;
 
 use humhub\modules\ui\menu\MenuLink;
 use humhub\modules\content\widgets\WallEntryLinks;
+use humhub\modules\like\widgets\LikeLink;
 use humhub\modules\post\models\Post;
 use humhub\modules\conversations\widgets\PostEmojiReactionLink;
 use humhub\helpers\ControllerHelper;
@@ -19,6 +20,16 @@ final class Events
         }
 
         $event->sender->addWidget(PostEmojiReactionLink::class, ['object' => $event->sender->object], ['sortOrder' => 30]);
+    }
+
+    /** Replaces the native binary Like control on posts with emoji reactions. */
+    public static function onWallEntryLinksRun($event): void
+    {
+        if (!$event->sender->object instanceof Post) {
+            return;
+        }
+
+        $event->sender->removeWidget(LikeLink::class);
     }
 
     public static function onAccountMenuInit($event): void

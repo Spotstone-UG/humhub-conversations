@@ -12,5 +12,6 @@ return [
     'events' => [
         ['class' => AccountMenu::class, 'event' => AccountMenu::EVENT_INIT, 'callback' => [Events::class, 'onAccountMenuInit']],
         ['class' => WallEntryLinks::class, 'event' => WallEntryLinks::EVENT_INIT, 'callback' => [Events::class, 'onWallEntryLinksInit']],
+        ['class' => WallEntryLinks::class, 'event' => WallEntryLinks::EVENT_RUN, 'callback' => [Events::class, 'onWallEntryLinksRun']],
     ],
 ];

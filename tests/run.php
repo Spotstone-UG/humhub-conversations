@@ -91,7 +91,7 @@ foreach (['toggle', 'EmojiPaletteService', 'actionReact'] as $requiredToken) {
 }
 
 $postReaction = (string) file_get_contents($root . '/services/PostEmojiReactionService.php') . (string) file_get_contents($root . '/controllers/PostReactionController.php') . (string) file_get_contents($root . '/Events.php');
-foreach (['PostEmojiReaction', 'EmojiPaletteService', 'onWallEntryLinksInit', 'WallEntryLinks'] as $requiredToken) {
+foreach (['PostEmojiReaction', 'EmojiPaletteService', 'onWallEntryLinksInit', 'onWallEntryLinksRun', 'removeWidget(LikeLink::class)', 'WallEntryLinks'] as $requiredToken) {
     if (!str_contains($postReaction, $requiredToken)) {
         fwrite(STDERR, "Post emoji reaction integration missing: $requiredToken\n");
         exit(1);
