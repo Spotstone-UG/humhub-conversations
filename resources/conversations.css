@@ -125,6 +125,13 @@
 .conversation-global-overview .panel-heading .text-body-secondary { font-size: .82rem; font-weight: 400; }
 .conversation-global-overview__space + .conversation-global-overview__space { border-top: 1px solid var(--bs-border-color, #e5e7eb); margin-top: 1.4rem; padding-top: 1.25rem; }
 .conversation-global-overview__space h2 { font-size: 1rem; margin: 0 0 .75rem; }
+.conversation-global-overview__space-header { align-items: center; display: flex; gap: .75rem; justify-content: space-between; }
+.conversation-global-overview__space-header h2 { margin-bottom: .75rem; }
+.conversation-global-overview__mute-form { margin: 0 0 .75rem; }
+.conversation-global-overview__muted-spaces { border-top: 1px solid var(--bs-border-color, #e5e7eb); margin-top: 1.5rem; padding-top: .9rem; }
+.conversation-global-overview__muted-spaces > summary { color: #667085; cursor: pointer; font-weight: 700; }
+.conversation-global-overview__muted-spaces > p { color: var(--bs-secondary-color, #667085); font-size: .85rem; margin: .55rem 0 .25rem; }
+.conversation-global-overview__space--muted { opacity: .82; }
 .conversation-global-overview__space h2 a { color: inherit; text-decoration: none; }
 .conversation-global-overview__space h2 a:hover { text-decoration: underline; }
 .conversation-top-menu__badge { align-items: center; background: #d92d20; border: 2px solid var(--bs-body-bg, #fff); border-radius: 999px; color: #fff; display: inline-flex; font-size: .62rem; font-weight: 700; height: 1.15rem; justify-content: center; line-height: 1; margin-left: .25rem; min-width: 1.15rem; padding: 0 .24rem; position: absolute; right: -.4rem; top: -.15rem; }
@@ -137,4 +144,5 @@
     .conversation-overview__row { gap: .35rem; grid-template-columns: 1fr auto; }
     .conversation-overview__row > :nth-child(3), .conversation-overview__row > :nth-child(4) { font-size: .75rem; grid-column: 1 / -1; }
     .conversation-global-overview { padding-left: .5rem; padding-right: .5rem; }
+    .conversation-global-overview__space-header { align-items: flex-start; flex-direction: column; gap: 0; }
 }

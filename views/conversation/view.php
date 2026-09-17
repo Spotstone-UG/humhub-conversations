@@ -204,7 +204,7 @@ $avatar = static function ($user): string {
             <div class="conversation-composer__controls">
                 <div><?= $uploads->button() ?><?= $uploads->progress() ?><?= $uploads->preview() ?></div>
                 <div class="conversation-composer__actions">
-                    <?php if ($conversation->content->canEdit()): ?>
+                    <?php if ($canEnd): ?>
                         <span class="dropdown conversation-composer__conversation-menu">
                             <?= Html::a('⋯', '#', ['class' => 'conversation-composer__menu-trigger', 'data-bs-toggle' => 'dropdown', 'role' => 'button', 'aria-label' => 'Optionen für Unterhaltung', 'title' => 'Optionen für Unterhaltung']) ?>
                             <ul class="dropdown-menu dropdown-menu-end">

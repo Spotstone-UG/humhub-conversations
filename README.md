@@ -54,7 +54,7 @@ Both the conversation and every message use HumHub content records. The conversa
 
 The single check is an ephemeral client-side "saved" state while submitting. A server-rendered message is already persisted and visible in the conversation, so it correctly displays `✓✓`.
 
-`conversation_consensus_proposal` is deliberately a transparent display workflow, not a voting or enforcement system. Teilnehmende sind die Personen, die im jeweiligen Chat eine Nachricht geschrieben haben; Ersteller:in und die beendende Person werden zusätzlich einbezogen. Eine neue Alternativfassung bewahrt die vorherige Fassung in der Datenbank und startet die 14-Tage-Frist neu.
+`conversation_consensus_proposal` is deliberately a transparent display workflow, not a voting or enforcement system. Teilnehmende sind ausschließlich die Personen, die im jeweiligen Chat eine Nachricht geschrieben haben. Reaktionen, bloßes Mitlesen und das Erstellen ohne Wortmeldung zählen ausdrücklich nicht. Eine neue Alternativfassung bewahrt die vorherige Fassung in der Datenbank und startet die 14-Tage-Frist neu.
 
 ## Installation (test instance first)
 

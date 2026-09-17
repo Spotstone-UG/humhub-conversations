@@ -5,6 +5,7 @@ namespace humhub\modules\conversations\services;
 
 use humhub\modules\conversations\models\Conversation;
 use humhub\modules\conversations\models\ConversationMessage;
+use humhub\modules\conversations\models\ConversationMutedSpace;
 use humhub\modules\space\models\Space;
 use humhub\modules\user\models\User;
 use yii\db\Expression;
@@ -13,7 +14,7 @@ use yii\db\Expression;
 final class ConversationOverviewService
 {
     /**
-     * @return array<int, array{space: Space, conversations: Conversation[], unreadCounts: array<int, int>}>
+     * @return array<int, array{space: Space, conversations: Conversation[], unreadCounts: array<int, int>, isMuted: bool}>
      */
     public function groupedBySpace(User $user): array
     {
@@ -21,6 +22,7 @@ final class ConversationOverviewService
             ->readable($user)
             ->orderBy(['conversation.last_message_at' => SORT_DESC, 'conversation.id' => SORT_DESC])
             ->all();
+        $mutedSpaceIds = $this->mutedSpaceIds($user);
 
         $groups = [];
         foreach ($all as $conversation) {
@@ -30,7 +32,7 @@ final class ConversationOverviewService
             }
 
             if (!isset($groups[$space->id])) {
-                $groups[$space->id] = ['space' => $space, 'items' => []];
+                $groups[$space->id] = ['space' => $space, 'items' => [], 'isMuted' => isset($mutedSpaceIds[(int) $space->id])];
             }
             $groups[$space->id]['items'][] = $conversation;
         }
@@ -77,10 +79,33 @@ final class ConversationOverviewService
     {
         $total = 0;
         foreach ($this->groupedBySpace($user) as $group) {
-            $total += array_sum($group['unreadCounts']);
+            if (!$group['isMuted']) {
+                $total += array_sum($group['unreadCounts']);
+            }
         }
 
         return $total;
+    }
+
+    /** Toggles a personal preference; it never changes Space membership or other people's view. */
+    public function toggleMutedSpace(User $user, Space $space): bool
+    {
+        $existing = ConversationMutedSpace::findOne(['user_id' => $user->id, 'space_id' => $space->id]);
+        if ($existing !== null) {
+            $existing->delete();
+            return false;
+        }
+
+        $preference = new ConversationMutedSpace([
+            'user_id' => $user->id,
+            'space_id' => $space->id,
+            'muted_at' => date('Y-m-d H:i:s'),
+        ]);
+        if (!$preference->save()) {
+            throw new \yii\web\BadRequestHttpException('Der Space konnte nicht stummgeschaltet werden.');
+        }
+
+        return true;
     }
 
     /** @param Conversation[] $conversations @return array<int, int> */
@@ -109,5 +134,16 @@ final class ConversationOverviewService
         }
 
         return $counts;
+    }
+
+    /** @return array<int, true> */
+    private function mutedSpaceIds(User $user): array
+    {
+        $ids = ConversationMutedSpace::find()
+            ->select('space_id')
+            ->where(['user_id' => $user->id])
+            ->column();
+
+        return array_fill_keys(array_map('intval', $ids), true);
     }
 }

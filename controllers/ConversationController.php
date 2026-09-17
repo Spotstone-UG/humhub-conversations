@@ -118,6 +118,7 @@ final class ConversationController extends ContentContainerController
         // Use the display snapshot: messages arriving during this request remain unread.
         $stateService->markSeen($conversation, Yii::$app->user->identity, $lastShownMessageId);
 
+        $consensusService = new ConversationConsensusService();
         return $this->render('view', [
             'conversation' => $conversation,
             'messages' => $messages,
@@ -125,7 +126,8 @@ final class ConversationController extends ContentContainerController
             'firstUnreadMessageId' => $firstUnreadMessageId,
             'subconversationsByOrigin' => $subconversationsByOrigin,
             'contentContainer' => $this->contentContainer,
-            'consensus' => (new ConversationConsensusService())->currentStatus($conversation, Yii::$app->user->identity),
+            'consensus' => $consensusService->currentStatus($conversation, Yii::$app->user->identity),
+            'canEnd' => !$conversation->isClosed && $conversation->content->canEdit() && $consensusService->isParticipant($conversation, Yii::$app->user->identity),
         ]);
     }
 
@@ -232,7 +234,7 @@ final class ConversationController extends ContentContainerController
     public function actionClose(int $conversationId)
     {
         $conversation = $this->findConversation($conversationId);
-        if (!$conversation->content->canEdit()) {
+        if (!$conversation->content->canEdit() || !(new ConversationConsensusService())->isParticipant($conversation, Yii::$app->user->identity)) {
             $this->forbidden();
         }
 

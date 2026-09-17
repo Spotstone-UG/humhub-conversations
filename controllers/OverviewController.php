@@ -27,4 +27,19 @@ final class OverviewController extends Controller
 
         return $this->render('index', ['groups' => $groups]);
     }
+
+    public function actionToggleMute(int $spaceId)
+    {
+        $this->forcePostRequest();
+        $service = new ConversationOverviewService();
+        $groups = $service->groupedBySpace(Yii::$app->user->identity);
+        if (!isset($groups[$spaceId])) {
+            $this->forbidden();
+        }
+
+        $isMuted = $service->toggleMutedSpace(Yii::$app->user->identity, $groups[$spaceId]['space']);
+        Yii::$app->session->setFlash('success', $isMuted ? 'Der Space ist stummgeschaltet.' : 'Der Space ist nicht mehr stummgeschaltet.');
+
+        return $this->redirect(['/conversations/overview/index']);
+    }
 }

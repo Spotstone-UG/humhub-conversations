@@ -15,6 +15,7 @@ $required = [
     'migrations/m260917_190000_add_post_emoji_reactions.php',
     'migrations/m260917_200000_add_subconversations_and_lifecycle.php',
     'migrations/m260917_210000_add_consensus_workflow.php',
+    'migrations/m260917_220000_add_muted_spaces.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
     'models/ConversationUserState.php',
@@ -25,6 +26,7 @@ $required = [
     'models/PostEmojiReaction.php',
     'models/ConversationConsensusProposal.php',
     'models/ConversationConsensusResponse.php',
+    'models/ConversationMutedSpace.php',
     'services/ConversationStateService.php',
     'services/ConversationOverviewService.php',
     'services/ConversationConsensusService.php',
@@ -33,6 +35,7 @@ $required = [
     'services/PostEmojiReactionService.php',
     'controllers/ConversationController.php',
     'controllers/OverviewController.php',
+    'views/overview/_space-group.php',
     'controllers/PostReactionController.php',
     'widgets/ConversationForm.php',
     'widgets/views/conversationForm.php',
@@ -98,7 +101,7 @@ foreach (['parent_conversation_id', 'origin_message_id', 'closed_at', 'outcome',
 }
 
 $consensus = (string) file_get_contents($root . '/services/ConversationConsensusService.php') . $conversationView . (string) file_get_contents($root . '/migrations/m260917_210000_add_consensus_workflow.php');
-foreach (['closed_by', '14 days', 'DECISION_CONSENT', 'DECISION_OBJECTION', 'Alternativvorschlag', 'conversation_consensus_proposal'] as $requiredToken) {
+foreach (['closed_by', '14 days', 'DECISION_CONSENT', 'DECISION_OBJECTION', 'Alternativvorschlag', 'conversation_consensus_proposal', 'isParticipant'] as $requiredToken) {
     if (!str_contains($consensus, $requiredToken)) {
         fwrite(STDERR, "Consensus workflow missing: $requiredToken\n");
         exit(1);
@@ -139,6 +142,14 @@ foreach (['onSpaceMenuInit', 'SpaceMenu::EVENT_INIT', 'space-conversations'] as 
 foreach (['onTopMenuInit', 'TopMenu::EVENT_INIT', 'global-chats', 'ConversationOverviewService'] as $requiredToken) {
     if (!str_contains($menuIntegration, $requiredToken)) {
         fwrite(STDERR, "Global Chats navigation missing: $requiredToken\n");
+        exit(1);
+    }
+}
+
+$mutedSpace = (string) file_get_contents($root . '/services/ConversationOverviewService.php') . (string) file_get_contents($root . '/controllers/OverviewController.php') . (string) file_get_contents($root . '/views/overview/index.php');
+foreach (['ConversationMutedSpace', 'toggleMutedSpace', 'Stumme Spaces', 'isMuted'] as $requiredToken) {
+    if (!str_contains($mutedSpace, $requiredToken)) {
+        fwrite(STDERR, "Muted Space workflow missing: $requiredToken\n");
         exit(1);
     }
 }

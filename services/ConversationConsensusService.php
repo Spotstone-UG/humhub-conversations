@@ -17,6 +17,10 @@ final class ConversationConsensusService
 {
     public function start(Conversation $conversation, string $outcome, User $author): ConversationConsensusProposal
     {
+        if (!$this->isParticipant($conversation, $author)) {
+            throw new ForbiddenHttpException('Nur Teilnehmende können einen Chat beenden.');
+        }
+
         return Yii::$app->db->transaction(function () use ($conversation, $outcome, $author): ConversationConsensusProposal {
             $conversation->outcome = $outcome;
             $conversation->closed_at = date('Y-m-d H:i:s');
@@ -27,6 +31,18 @@ final class ConversationConsensusService
 
             return $this->createProposal($conversation, $outcome, $author);
         });
+    }
+
+    /** A participant has made a word contribution in this exact chat. Reactions never count. */
+    public function isParticipant(Conversation $conversation, User $user): bool
+    {
+        foreach ($this->participants($conversation) as $participant) {
+            if ((int) $participant->id === (int) $user->id) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return array{proposal: ConversationConsensusProposal|null, participants: User[], responses: array<int, string>, status: string, consentCount: int, objectionCount: int, deadline: string|null, canRespond: bool, canProposeAlternative: bool} */
@@ -123,10 +139,6 @@ final class ConversationConsensusService
             ->andWhere(['IS NOT', 'content.created_by', null])
             ->distinct()
             ->column();
-        $ids[] = $conversation->content->created_by;
-        if ($conversation->closed_by !== null) {
-            $ids[] = $conversation->closed_by;
-        }
         $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
         if ($ids === []) {
             return [];
