@@ -24,8 +24,8 @@
 .conversation-card__counts { display: inline-flex; gap: .7rem; margin-left: auto; }
 .conversation-card__unread { color: #b42318; font-weight: 600; }
 
-/* In a Conversation-enabled Space, Conversation replaces the legacy Post tab. */
-#contentFormMenu [data-action-url*="post%2Fpost%2Fcreate-form"] { display: none !important; }
+/* Conversations extend the Stream composer; the standard Beitrag must remain visible. */
+#contentFormMenu [data-action-url*="post%2Fpost%2Fcreate-form"] { display: block !important; }
 
 .conversation-view { margin: 0 auto; max-width: 800px; padding-bottom: 5.5rem; }
 .conversation-view__header { border-bottom: 1px solid var(--bs-border-color, #e5e7eb); margin-bottom: 1rem; padding: .25rem 0 1rem; }

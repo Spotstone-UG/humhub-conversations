@@ -27,10 +27,7 @@ final class Module extends ContentContainerModule
     }
 
     /**
-     * Makes Conversation available to HumHub's standard stream composer.
-     *
-     * The accompanying wall entry gives it the first sort position, so it is
-     * the initial composer form in Spaces where this module is enabled.
+     * Adds Conversation alongside HumHub's standard Beitrag composer.
      */
     public function getContentClasses(?ContentContainerActiveRecord $contentContainer = null): array
     {

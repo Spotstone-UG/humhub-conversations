@@ -12,7 +12,8 @@ final class ConversationCard extends WallStreamEntryWidget
 {
     public $createRoute = '/conversations/conversation/create-form';
     public $createFormClass = ConversationForm::class;
-    public $createFormSortOrder = 0;
+    /** Keep HumHub's standard Beitrag composer first; Conversation is additive. */
+    public $createFormSortOrder = 110;
 
     protected function renderBody(): string
     {

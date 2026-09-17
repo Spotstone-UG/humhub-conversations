@@ -48,17 +48,22 @@ if (!str_contains($messageModel, 'protected $streamChannel = null')) {
 
 $module = (string) file_get_contents($root . '/Module.php');
 $card = (string) file_get_contents($root . '/widgets/ConversationCard.php');
+$styles = (string) file_get_contents($root . '/resources/conversations.css');
 foreach (['getContentClasses', 'Conversation::class'] as $requiredToken) {
     if (!str_contains($module, $requiredToken)) {
         fwrite(STDERR, "Conversation is not registered for the standard stream composer: $requiredToken\n");
         exit(1);
     }
 }
-foreach (['WallStreamEntryWidget', 'ConversationForm::class', 'createFormSortOrder = 0'] as $requiredToken) {
+foreach (['WallStreamEntryWidget', 'ConversationForm::class', 'createFormSortOrder = 110'] as $requiredToken) {
     if (!str_contains($card, $requiredToken)) {
-        fwrite(STDERR, "Conversation is not configured as the primary stream composer: $requiredToken\n");
+        fwrite(STDERR, "Conversation is not configured as an additive stream composer: $requiredToken\n");
         exit(1);
     }
+}
+if (!str_contains($styles, 'post%2Fpost%2Fcreate-form"] { display: block !important; }')) {
+    fwrite(STDERR, "The standard Beitrag composer must remain visible.\n");
+    exit(1);
 }
 
 $messageService = (string) file_get_contents($root . '/services/ConversationService.php');

@@ -9,7 +9,7 @@ It deliberately has no AI, automatic summaries, content screening or subtopics. 
 ## What is implemented
 
 - Space-only `Conversation` content type with the existing Space permission model.
-- In enabled Spaces, Conversation is the primary standard-stream composer; it replaces the visible legacy **Beitrag** entry instead of adding a separate Space tab.
+- In enabled Spaces, the familiar **Beitrag** composer stays first. **Conversation** is an additional composer entry; it does not replace posts and does not add a separate Space tab.
 - Compact stream card: title, two-line manual summary, space/activity metadata, message count and a personal `X neu` count.
 - Dedicated conversation page; messages are not shown as comments in the stream.
 - Conversation messages are non-stream `ContentActiveRecord`s. This keeps HumHub's file manager, RichText and (where the core Like module is enabled) reactions usable per message.
@@ -56,13 +56,13 @@ The single check is an ephemeral client-side "saved" state while submitting. A s
    ```
 
 4. Enable **Conversations** for a test Space in its module administration. Configure the module permission *Create conversations* for members as appropriate.
-5. Clear HumHub caches if the deployment process requires it, then open that Space's ordinary Stream. Its composer offers **Conversation** instead of **Beitrag**.
+5. Clear HumHub caches if the deployment process requires it, then open that Space's ordinary Stream. Its composer offers **Beitrag** and **Conversation**, with **Beitrag** first.
 
 Target test location: `testcommunity.selbstsein.events`. Production is explicitly out of scope for this repository bootstrap.
 
 ## Test plan for `testcommunity.selbstsein.events`
 
-1. **Basic conversation:** In an enabled Space, confirm the normal Stream composer shows **Conversation** and no visible **Beitrag** entry. Member A creates a conversation with title and summary. Confirm a compact card appears in the ordinary Space stream and no comments appear below it.
+1. **Basic conversation:** In an enabled Space, confirm the normal Stream composer keeps **Beitrag** as its first entry and offers **Conversation** alongside it. Member A creates a conversation with title and summary. Confirm a compact card appears in the ordinary Space stream and no comments appear below it.
 2. **Permissions:** A non-member and a user without *Create conversations* cannot create or post. A Space member can view and post.
 3. **Messages:** A and B exchange messages with an image/file. Confirm the attachment and Like reaction render on the message and no individual message appears in the stream.
 4. **Unread:** B opens the card after A posted three messages. Confirm `● 3 neu`, scroll to the first new message and the divider. Reload and confirm the personal count is cleared; A's display is unaffected.
