@@ -18,10 +18,37 @@ $reactionSummaries = (new ConversationReactionService())->summaries($messages, $
 ?>
 <section class="conversation-view">
     <header class="conversation-view__header">
-        <?= Html::a('← ' . Html::encode($contentContainer->displayName), $contentContainer->createUrl('/conversations/conversation/index'), ['class' => 'conversation-view__back']) ?>
+        <?php if ($conversation->parentConversation !== null): ?>
+            <?= Html::a('← Zur Hauptkonversation: ' . Html::encode($conversation->parentConversation->title), $conversation->parentConversation->url, ['class' => 'conversation-view__back']) ?>
+        <?php else: ?>
+            <?= Html::a('← ' . Html::encode($contentContainer->displayName), $contentContainer->createUrl('/conversations/conversation/index'), ['class' => 'conversation-view__back']) ?>
+        <?php endif; ?>
         <h1><?= Html::encode($conversation->title) ?></h1>
         <?php if ($conversation->summary): ?><p><?= Html::encode($conversation->summary) ?></p><?php endif; ?>
+        <div class="conversation-view__lifecycle">
+            <?php if ($conversation->isClosed): ?>
+                <span class="conversation-status conversation-status--closed">Beendet</span>
+            <?php elseif ($conversation->content->canEdit()): ?>
+                <?= Html::a('Unterhaltung beenden', '#', [
+                    'class' => 'conversation-view__close-link',
+                    'data-action-click' => 'ui.modal.load',
+                    'data-action-url' => $contentContainer->createUrl('/conversations/conversation/close', ['conversationId' => $conversation->id]),
+                ]) ?>
+            <?php endif; ?>
+        </div>
     </header>
+
+    <?php if ($conversation->isClosed): ?>
+        <section class="conversation-outcome" aria-label="Gesprächsergebnis">
+            <span class="conversation-outcome__label">Gesprächsergebnis</span>
+            <p><?= $conversation->outcome !== '' ? nl2br(Html::encode($conversation->outcome)) : 'Für diese Unterhaltung wurde kein Ergebnis festgehalten.' ?></p>
+            <?php if ($conversation->content->canEdit()): ?>
+                <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/reopen', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-outcome__reopen']) ?>
+                    <?= Html::submitButton('Unterhaltung wieder öffnen', ['class' => 'btn btn-default btn-sm']) ?>
+                <?= Html::endForm() ?>
+            <?php endif; ?>
+        </section>
+    <?php endif; ?>
 
     <div class="conversation-view__messages" aria-live="polite">
         <?php if ($messages === []): ?>
@@ -32,11 +59,15 @@ $reactionSummaries = (new ConversationReactionService())->summaries($messages, $
                 <div class="conversation-unread-divider" id="first-unread-message">── <?= $unreadCount ?> neue Nachrichten ──</div>
             <?php endif; ?>
             <?php $isOwn = (int) $message->content->created_by === (int) $currentUser->id; ?>
-            <article class="conversation-message <?= $isOwn ? 'conversation-message--own' : '' ?>" id="conversation-message-<?= $message->id ?>">
+            <article class="conversation-message <?= $isOwn ? 'conversation-message--own' : '' ?> <?= $message->isDeleted ? 'conversation-message--deleted' : '' ?>" id="conversation-message-<?= $message->id ?>">
                 <div class="conversation-message__author"><?= Html::encode($message->content->createdBy->displayName) ?></div>
                 <div class="conversation-message__bubble">
-                    <?= RichText::output($message->message, ['record' => $message]) ?>
-                    <?= ShowFiles::widget(['object' => $message]) ?>
+                    <?php if ($message->isDeleted): ?>
+                        <em>Diese Nachricht wurde gelöscht.</em>
+                    <?php else: ?>
+                        <?= RichText::output($message->message, ['record' => $message]) ?>
+                        <?= ShowFiles::widget(['object' => $message]) ?>
+                    <?php endif; ?>
                 </div>
                 <div class="conversation-message__meta">
                     <time datetime="<?= Html::encode($message->content->created_at) ?>"><?= Yii::$app->formatter->asTime($message->content->created_at, 'short') ?></time>
@@ -49,20 +80,40 @@ $reactionSummaries = (new ConversationReactionService())->summaries($messages, $
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>
-                <div class="conversation-message__actions">
-                    <?= Html::a('Reaktion', '#', [
-                        'class' => 'conversation-message__reaction-trigger',
-                        'data-action-click' => 'ui.modal.load',
-                        'data-action-url' => $contentContainer->createUrl('/conversations/conversation/reaction-picker', ['conversationId' => $conversation->id, 'messageId' => $message->id]),
-                    ]) ?>
-                    <?php if ($isOwn): ?>
-                        <?= Html::a('Bearbeiten', '#', [
-                            'class' => 'conversation-message__edit',
+                <?php if (!$message->isDeleted): ?>
+                    <div class="conversation-message__actions">
+                        <?= Html::a('Reaktion', '#', [
+                            'class' => 'conversation-message__reaction-trigger',
                             'data-action-click' => 'ui.modal.load',
-                            'data-action-url' => $contentContainer->createUrl('/conversations/conversation/edit-message', ['conversationId' => $conversation->id, 'messageId' => $message->id]),
+                            'data-action-url' => $contentContainer->createUrl('/conversations/conversation/reaction-picker', ['conversationId' => $conversation->id, 'messageId' => $message->id]),
                         ]) ?>
-                    <?php endif; ?>
-                </div>
+                        <?php if ($conversation->content->canEdit()): ?>
+                            <span class="dropdown conversation-message__menu <?= $isOwn ? 'conversation-message__menu--own' : '' ?>">
+                                <?= Html::a('⋮', '#', ['class' => 'conversation-message__menu-trigger', 'data-bs-toggle' => 'dropdown', 'role' => 'button', 'aria-label' => 'Optionen für Nachricht', 'title' => 'Optionen']) ?>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><?= Html::a('Unterthema beginnen', '#', [
+                                        'class' => 'dropdown-item',
+                                        'data-action-click' => 'ui.modal.load',
+                                        'data-action-url' => $contentContainer->createUrl('/conversations/conversation/start-subconversation', ['conversationId' => $conversation->id, 'messageId' => $message->id]),
+                                    ]) ?></li>
+                                    <?php if ($isOwn): ?>
+                                        <li><?= Html::a('Bearbeiten', '#', [
+                                            'class' => 'dropdown-item',
+                                            'data-action-click' => 'ui.modal.load',
+                                            'data-action-url' => $contentContainer->createUrl('/conversations/conversation/edit-message', ['conversationId' => $conversation->id, 'messageId' => $message->id]),
+                                        ]) ?></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><?= Html::a('Nachricht löschen', '#', [
+                                            'class' => 'dropdown-item text-danger',
+                                            'data-action-click' => 'ui.modal.load',
+                                            'data-action-url' => $contentContainer->createUrl('/conversations/conversation/delete-message', ['conversationId' => $conversation->id, 'messageId' => $message->id]),
+                                        ]) ?></li>
+                                    <?php endif; ?>
+                                </ul>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
                 <?php if (isset($reactionSummaries[$message->id])): ?>
                     <div class="conversation-message__reactions" aria-label="Reaktionen">
                         <?php foreach ($reactionSummaries[$message->id] as $reaction): ?>
@@ -76,7 +127,7 @@ $reactionSummaries = (new ConversationReactionService())->summaries($messages, $
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
-                <?php if ($message->edited_at !== null): ?>
+                <?php if (!$message->isDeleted && $message->edited_at !== null): ?>
                     <div class="conversation-message__edited">
                         <?= Html::a('bearbeitet', '#', [
                             'title' => 'Änderungsverlauf anzeigen',
@@ -86,14 +137,19 @@ $reactionSummaries = (new ConversationReactionService())->summaries($messages, $
                     </div>
                 <?php endif; ?>
             </article>
+            <?php foreach ($subconversationsByOrigin[(int) $message->id] ?? [] as $subconversation): ?>
+                <?= $this->render('_subconversation-card', ['subconversation' => $subconversation]) ?>
+            <?php endforeach; ?>
         <?php endforeach; ?>
     </div>
 
-    <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/message', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-composer']) ?>
-        <?= Html::textarea('ConversationMessage[message]', '', ['class' => 'form-control', 'rows' => 3, 'placeholder' => 'Nachricht schreiben …', 'required' => true]) ?>
-        <div class="conversation-composer__controls">
-            <div><?= $uploads->button() ?><?= $uploads->progress() ?><?= $uploads->preview() ?></div>
-            <?= Html::submitButton('Senden', ['class' => 'btn btn-primary']) ?>
-        </div>
-    <?= Html::endForm() ?>
+    <?php if (!$conversation->isClosed): ?>
+        <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/message', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-composer']) ?>
+            <?= Html::textarea('ConversationMessage[message]', '', ['class' => 'form-control', 'rows' => 3, 'placeholder' => 'Nachricht schreiben …', 'required' => true]) ?>
+            <div class="conversation-composer__controls">
+                <div><?= $uploads->button() ?><?= $uploads->progress() ?><?= $uploads->preview() ?></div>
+                <?= Html::submitButton('Senden', ['class' => 'btn btn-primary']) ?>
+            </div>
+        <?= Html::endForm() ?>
+    <?php endif; ?>
 </section>

@@ -85,6 +85,12 @@ final class ConversationController extends ContentContainerController
         $unreadCount = $stateService->unreadCount($conversation, Yii::$app->user->identity);
         $firstUnreadMessageId = $stateService->firstUnreadMessageId($conversation, Yii::$app->user->identity);
         $messages = $conversation->getMessages()->all();
+        $subconversationsByOrigin = [];
+        foreach ($conversation->subconversations as $subconversation) {
+            if ($subconversation->origin_message_id !== null) {
+                $subconversationsByOrigin[(int) $subconversation->origin_message_id][] = $subconversation;
+            }
+        }
         $lastShownMessageId = $messages ? (int) end($messages)->id : null;
 
         // Use the display snapshot: messages arriving during this request remain unread.
@@ -95,6 +101,7 @@ final class ConversationController extends ContentContainerController
             'messages' => $messages,
             'unreadCount' => $unreadCount,
             'firstUnreadMessageId' => $firstUnreadMessageId,
+            'subconversationsByOrigin' => $subconversationsByOrigin,
             'contentContainer' => $this->contentContainer,
         ]);
     }
@@ -103,6 +110,9 @@ final class ConversationController extends ContentContainerController
     {
         $this->forcePostRequest();
         $conversation = $this->findConversation($conversationId);
+        if ($conversation->isClosed) {
+            throw new \yii\web\ForbiddenHttpException('Diese Conversation ist beendet.');
+        }
         $message = new ConversationMessage($conversation->content->container);
         $message->load(Yii::$app->request->post());
 
@@ -125,7 +135,7 @@ final class ConversationController extends ContentContainerController
         $conversation = $this->findConversation($conversationId);
         $message = $this->findMessage($conversation, $messageId);
 
-        if ((int) $message->content->created_by !== (int) Yii::$app->user->id) {
+        if ((int) $message->content->created_by !== (int) Yii::$app->user->id || $message->isDeleted) {
             $this->forbidden();
         }
 
@@ -145,6 +155,84 @@ final class ConversationController extends ContentContainerController
             'message' => $message,
             'contentContainer' => $this->contentContainer,
         ]);
+    }
+
+    /** Lets every Space member who may post start a linked, separate chat. */
+    public function actionStartSubconversation(int $conversationId, int $messageId)
+    {
+        $parent = $this->findConversation($conversationId);
+        $origin = $this->findMessage($parent, $messageId);
+        $subconversation = new Conversation($this->contentContainer);
+
+        if (!$subconversation->content->canEdit()) {
+            $this->forbidden();
+        }
+
+        if (Yii::$app->request->isPost) {
+            $this->forcePostRequest();
+            $subconversation->load(Yii::$app->request->post());
+            $subconversation = (new ConversationService())->createSubconversation($parent, $origin, $subconversation);
+
+            return $this->redirect($subconversation->url);
+        }
+
+        return $this->renderAjax('start-subconversation', [
+            'parent' => $parent,
+            'origin' => $origin,
+            'subconversation' => $subconversation,
+            'contentContainer' => $this->contentContainer,
+        ]);
+    }
+
+    /** Presents confirmation then leaves a permanent, content-free timeline marker. */
+    public function actionDeleteMessage(int $conversationId, int $messageId)
+    {
+        $conversation = $this->findConversation($conversationId);
+        $message = $this->findMessage($conversation, $messageId);
+        if ((int) $message->content->created_by !== (int) Yii::$app->user->id || $message->isDeleted) {
+            $this->forbidden();
+        }
+
+        if (Yii::$app->request->isPost) {
+            $this->forcePostRequest();
+            (new ConversationService())->deleteMessage($conversation, $message);
+            return $this->redirect($conversation->url . '#conversation-message-' . $message->id);
+        }
+
+        return $this->renderAjax('delete-message', [
+            'conversation' => $conversation,
+            'message' => $message,
+            'contentContainer' => $this->contentContainer,
+        ]);
+    }
+
+    public function actionClose(int $conversationId)
+    {
+        $conversation = $this->findConversation($conversationId);
+        if (!$conversation->content->canEdit()) {
+            $this->forbidden();
+        }
+
+        if (Yii::$app->request->isPost) {
+            $this->forcePostRequest();
+            $outcome = (string) Yii::$app->request->post('outcome');
+            (new ConversationService())->close($conversation, $outcome);
+            return $this->redirect($conversation->url);
+        }
+
+        return $this->renderAjax('close', [
+            'conversation' => $conversation,
+            'contentContainer' => $this->contentContainer,
+        ]);
+    }
+
+    public function actionReopen(int $conversationId)
+    {
+        $this->forcePostRequest();
+        $conversation = $this->findConversation($conversationId);
+        (new ConversationService())->reopen($conversation);
+
+        return $this->redirect($conversation->url);
     }
 
     /** Opens the complete HumHub Unicode emoji catalogue for a message. */

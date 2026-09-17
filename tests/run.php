@@ -13,6 +13,7 @@ $required = [
     'migrations/m260917_170000_add_emoji_reactions.php',
     'migrations/m260917_180000_add_message_revision_history.php',
     'migrations/m260917_190000_add_post_emoji_reactions.php',
+    'migrations/m260917_200000_add_subconversations_and_lifecycle.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
     'models/ConversationUserState.php',
@@ -77,6 +78,21 @@ $messageController = (string) file_get_contents($root . '/controllers/Conversati
 foreach (['editMessage', 'created_by', 'edited_at', 'ConversationMessageRevision', 'previous_message', 'revised_message'] as $requiredToken) {
     if (!str_contains($messageService . $messageController, $requiredToken)) {
         fwrite(STDERR, "Message editing protection missing: $requiredToken\n");
+        exit(1);
+    }
+}
+
+$conversationModel = (string) file_get_contents($root . '/models/Conversation.php');
+$conversationView = (string) file_get_contents($root . '/views/conversation/view.php');
+foreach (['parent_conversation_id', 'origin_message_id', 'closed_at', 'outcome', 'getSubconversations'] as $requiredToken) {
+    if (!str_contains($conversationModel . $conversationView, $requiredToken)) {
+        fwrite(STDERR, "Subconversation/lifecycle implementation missing: $requiredToken\n");
+        exit(1);
+    }
+}
+foreach (['deleteMessage', 'deleted_at', 'fileManager->findAll', 'Diese Nachricht wurde gelöscht'] as $requiredToken) {
+    if (!str_contains($messageService . $conversationView, $requiredToken)) {
+        fwrite(STDERR, "Message tombstone implementation missing: $requiredToken\n");
         exit(1);
     }
 }

@@ -8,6 +8,7 @@ use humhub\modules\content\models\Content;
 use humhub\modules\conversations\models\Conversation;
 use humhub\modules\conversations\models\ConversationMessage;
 use humhub\modules\conversations\models\ConversationMessageRevision;
+use humhub\modules\file\models\File;
 use Yii;
 use yii\web\BadRequestHttpException;
 
@@ -27,6 +28,19 @@ final class ConversationService
         }
 
         return $conversation;
+    }
+
+    /** Starts a separate chat from an existing message without changing Space permissions. */
+    public function createSubconversation(Conversation $parent, ConversationMessage $origin, Conversation $subconversation): Conversation
+    {
+        if ((int) $origin->conversation_id !== (int) $parent->id || !$parent->content->canView() || !$subconversation->content->canEdit()) {
+            throw new \yii\web\ForbiddenHttpException();
+        }
+
+        $subconversation->parent_conversation_id = $parent->id;
+        $subconversation->origin_message_id = $origin->id;
+
+        return $this->create($subconversation, $parent->content->container);
     }
 
     /** @param string[] $fileGuids */
@@ -59,6 +73,7 @@ final class ConversationService
         if (
             (int) $message->conversation_id !== (int) $conversation->id
             || (int) $message->content->created_by !== (int) Yii::$app->user->id
+            || $message->deleted_at !== null
         ) {
             throw new \yii\web\ForbiddenHttpException();
         }
@@ -89,5 +104,60 @@ final class ConversationService
 
             return true;
         });
+    }
+
+    /**
+     * Removes the visible message and its exclusive attachments for every
+     * participant while keeping a stable timeline placeholder.
+     */
+    public function deleteMessage(Conversation $conversation, ConversationMessage $message): bool
+    {
+        if (
+            (int) $message->conversation_id !== (int) $conversation->id
+            || (int) $message->content->created_by !== (int) Yii::$app->user->id
+            || $message->deleted_at !== null
+        ) {
+            throw new \yii\web\ForbiddenHttpException();
+        }
+
+        return Yii::$app->db->transaction(function () use ($message): bool {
+            // Attachments belong to one conversation message; remove their data as
+            // well, instead of merely hiding a link in this view.
+            foreach ($message->fileManager->findAll() as $file) {
+                $file->delete();
+            }
+
+            $message->message = '';
+            $message->deleted_at = date('Y-m-d H:i:s');
+            $message->edited_at = null;
+
+            if (!$message->save(false, ['message', 'deleted_at', 'edited_at'])) {
+                throw new BadRequestHttpException('Die Nachricht konnte nicht gelöscht werden.');
+            }
+
+            return true;
+        });
+    }
+
+    public function close(Conversation $conversation, string $outcome): bool
+    {
+        if (!$conversation->content->canEdit()) {
+            throw new \yii\web\ForbiddenHttpException();
+        }
+
+        $conversation->outcome = $outcome;
+        $conversation->closed_at = date('Y-m-d H:i:s');
+
+        return $conversation->save();
+    }
+
+    public function reopen(Conversation $conversation): bool
+    {
+        if (!$conversation->content->canEdit()) {
+            throw new \yii\web\ForbiddenHttpException();
+        }
+
+        $conversation->closed_at = null;
+        return $conversation->save(false, ['closed_at']);
     }
 }

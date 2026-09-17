@@ -4,7 +4,7 @@ An independent module for **HumHub Community Edition 1.18.5**. It turns a Space 
 
 > Im Stream überblicken. In der Conversation schreiben.
 
-It deliberately has no AI, automatic summaries, content screening or subtopics. Those are future product decisions, not hidden dependencies.
+It deliberately has no AI, automatic summaries or content screening. AI support remains a future product decision, not a hidden dependency.
 
 ## What is implemented
 
@@ -22,11 +22,15 @@ It deliberately has no AI, automatic summaries, content screening or subtopics. 
 - **V1.4:** Every message offers **Reaktion**. It opens the complete Unicode emoji catalogue already bundled with HumHub; people can add or remove each emoji independently. The legacy single-purpose `Gefällt mir` control is not used in Conversations.
 - **V1.5:** The emoji picker is grouped and searchable like familiar chat apps. Reactions sit compactly on the message bubble. `bearbeitet` is a small link to an immutable before/after timeline with each edit's time.
 - **V1.6:** Normal Space posts replace the native binary **Gefällt mir** link with **Reaktion** and the same full emoji palette, without changing any HumHub core file.
+- **V1.7:** Every message has a compact `…` menu. Any member who may write in the Space can start a linked **Unterthema** from a message. It becomes a separate chat and is represented only by a clear card at the originating message — never as a duplicate Stream entry. Authors may also delete their own message after confirmation; text and exclusively attached files are removed for all participants and a stable “Diese Nachricht wurde gelöscht.” marker preserves chronology.
+- **V1.8:** The Conversations overview is a tabular card list with status, activity and saved outcome. Authorized Space members can end a conversation with a human-written **Gesprächsergebnis / Konsens**; it stays readable with the result first and can be reopened.
 
 ## Architecture
 
 ```text
 Conversation (ContentActiveRecord, normal Stream entry)
+  ├── parent_conversation_id / origin_message_id  linked Unterthema (no Stream entry)
+  ├── closed_at / outcome                          lifecycle and human outcome
   ├── conversation_user_state       private last_seen state
   └── ConversationMessage (ContentActiveRecord, stream_channel = null)
         └── conversation_read_receipt   voluntary, sender-visible only
@@ -74,6 +78,10 @@ Target test location: `testcommunity.selbstsein.events`. Production is explicitl
 9. **Emoji reactions:** Confirm every message has **Reaktion**, the picker can search the full catalogue and a selected emoji appears with its count. Select it again to remove the personal reaction.
 10. **Edit history:** Edit a message twice. Confirm `bearbeitet` opens a timeline with the before/after content and time of both changes. Confirm all Conversation participants can read the history, but only the author can create revisions.
 11. **Post reactions:** On a normal Space post, confirm **Reaktion** replaces **Gefällt mir**. Open the picker, search an emoji and confirm the selected emoji is counted; select the same chip again to remove the personal reaction.
+
+12. **Unterthemen:** Member B starts an Unterthema from A’s message. Confirm the card at that precise location, the separate chat, inherited Space permissions and that no second unrelated Stream card appears.
+13. **Löschen:** Author A deletes a message with an attachment. Confirm the confirmation dialog, that every participant sees only the deletion marker, and that the former attachment is unavailable.
+14. **Beenden:** End a conversation with an outcome. Confirm it is read-only, opens with the stored outcome, remains readable and can be reopened by a permitted member.
 
 ## Developer checks
 

@@ -30,6 +30,7 @@ final class ConversationMessage extends ContentActiveRecord
             [['conversation_id'], 'integer', 'min' => 1],
             [['message'], 'required'],
             [['message'], 'string', 'max' => 65535],
+            [['deleted_at'], 'safe'],
         ];
     }
 
@@ -72,11 +73,16 @@ final class ConversationMessage extends ContentActiveRecord
 
     public function getContentDescription(): string
     {
-        return (string) $this->message;
+        return $this->deleted_at === null ? (string) $this->message : 'Diese Nachricht wurde gelöscht.';
     }
 
     public function getUrl(): string
     {
         return Url::to(['/conversations/conversation/view', 'id' => $this->conversation_id, 'contentContainer' => $this->content->container]);
+    }
+
+    public function getIsDeleted(): bool
+    {
+        return $this->deleted_at !== null;
     }
 }
