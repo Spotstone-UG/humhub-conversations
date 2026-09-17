@@ -9,6 +9,7 @@ It deliberately has no AI, automatic summaries, content screening or subtopics. 
 ## What is implemented
 
 - Space-only `Conversation` content type with the existing Space permission model.
+- Space-menu entry for the Conversation overview and creation flow.
 - Compact stream card: title, two-line manual summary, space/activity metadata, message count and a personal `X neu` count.
 - Dedicated conversation page; messages are not shown as comments in the stream.
 - Conversation messages are non-stream `ContentActiveRecord`s. This keeps HumHub's file manager, RichText and (where the core Like module is enabled) reactions usable per message.
@@ -74,4 +75,3 @@ HUMHUB_ROOT=/path/to/humhub php tests/compatibility.php
 ```
 
 Run PHP syntax checks for every PHP file and the acceptance plan above before a production release. The module uses AGPL-3.0-only source headers.
-
