@@ -12,6 +12,7 @@ $required = [
     'migrations/m260917_160000_add_message_edit_marker.php',
     'migrations/m260917_170000_add_emoji_reactions.php',
     'migrations/m260917_180000_add_message_revision_history.php',
+    'migrations/m260917_190000_add_post_emoji_reactions.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
     'models/ConversationUserState.php',
@@ -19,12 +20,17 @@ $required = [
     'models/ConversationUserSetting.php',
     'models/ConversationReaction.php',
     'models/ConversationMessageRevision.php',
+    'models/PostEmojiReaction.php',
     'services/ConversationStateService.php',
     'services/ConversationReactionService.php',
     'services/EmojiPaletteService.php',
+    'services/PostEmojiReactionService.php',
     'controllers/ConversationController.php',
+    'controllers/PostReactionController.php',
     'widgets/ConversationForm.php',
     'widgets/views/conversationForm.php',
+    'widgets/PostEmojiReactionLink.php',
+    'widgets/views/postEmojiReactionLink.php',
 ];
 
 foreach ($required as $file) {
@@ -80,6 +86,14 @@ $reactionController = (string) file_get_contents($root . '/controllers/Conversat
 foreach (['toggle', 'EmojiPaletteService', 'actionReact'] as $requiredToken) {
     if (!str_contains($reactionService . $reactionController, $requiredToken)) {
         fwrite(STDERR, "Emoji reaction implementation missing: $requiredToken\n");
+        exit(1);
+    }
+}
+
+$postReaction = (string) file_get_contents($root . '/services/PostEmojiReactionService.php') . (string) file_get_contents($root . '/controllers/PostReactionController.php') . (string) file_get_contents($root . '/Events.php');
+foreach (['PostEmojiReaction', 'EmojiPaletteService', 'onWallEntryLinksInit', 'WallEntryLinks'] as $requiredToken) {
+    if (!str_contains($postReaction, $requiredToken)) {
+        fwrite(STDERR, "Post emoji reaction integration missing: $requiredToken\n");
         exit(1);
     }
 }

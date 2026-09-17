@@ -4,11 +4,23 @@
 namespace humhub\modules\conversations;
 
 use humhub\modules\ui\menu\MenuLink;
+use humhub\modules\content\widgets\WallEntryLinks;
+use humhub\modules\post\models\Post;
+use humhub\modules\conversations\widgets\PostEmojiReactionLink;
 use humhub\helpers\ControllerHelper;
 use Yii;
 
 final class Events
 {
+    public static function onWallEntryLinksInit($event): void
+    {
+        if (!$event->sender->object instanceof Post) {
+            return;
+        }
+
+        $event->sender->addWidget(PostEmojiReactionLink::class, ['object' => $event->sender->object], ['sortOrder' => 30]);
+    }
+
     public static function onAccountMenuInit($event): void
     {
         if (Yii::$app->user->isGuest) {

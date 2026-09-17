@@ -3,6 +3,7 @@
 
 use humhub\modules\conversations\Events;
 use humhub\modules\user\widgets\AccountMenu;
+use humhub\modules\content\widgets\WallEntryLinks;
 
 return [
     'id' => 'conversations',
@@ -10,5 +11,6 @@ return [
     'namespace' => 'humhub\modules\conversations',
     'events' => [
         ['class' => AccountMenu::class, 'event' => AccountMenu::EVENT_INIT, 'callback' => [Events::class, 'onAccountMenuInit']],
+        ['class' => WallEntryLinks::class, 'event' => WallEntryLinks::EVENT_INIT, 'callback' => [Events::class, 'onWallEntryLinksInit']],
     ],
 ];
