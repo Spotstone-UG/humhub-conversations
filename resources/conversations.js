@@ -126,13 +126,58 @@
         window.requestAnimationFrame(function () { moveCaretToEnd(input); });
     }
 
+    function setReply(composer, reply) {
+        const hidden = composer?.querySelector('[data-conversation-reply-input]');
+        const preview = composer?.querySelector('[data-conversation-reply-preview]');
+        const replyId = Number(reply?.dataset.conversationReplyId || 0);
+        if (!composer || !hidden || !preview || !Number.isInteger(replyId) || replyId < 1) { return false; }
+
+        hidden.value = String(replyId);
+        preview.hidden = false;
+        // Dataset values come from names and message excerpts. Construct the
+        // preview with text nodes so they can never become markup.
+        const author = document.createElement('strong');
+        author.textContent = 'Antwort an ' + (reply.dataset.conversationReplyAuthor || '');
+        const excerpt = document.createElement('span');
+        excerpt.textContent = reply.dataset.conversationReplyExcerpt || '';
+        const clear = document.createElement('button');
+        clear.type = 'button'; clear.setAttribute('aria-label', 'Antwortbezug entfernen'); clear.textContent = '×';
+        clear.addEventListener('click', function () { hidden.value = ''; preview.hidden = true; preview.textContent = ''; }, {once: true});
+        preview.replaceChildren(author, excerpt, clear);
+        return true;
+    }
+
     function flashMessage(id) {
         const message = document.getElementById(id);
         if (!message) { return; }
-        message.scrollIntoView({block: 'center', behavior: 'smooth'});
+        scrollIntoReadableArea(message, 'center');
         message.classList.remove('conversation-message--flash');
         window.setTimeout(function () { message.classList.add('conversation-message--flash'); }, 20);
         window.setTimeout(function () { message.classList.remove('conversation-message--flash'); }, 1800);
+    }
+
+    /** Scrolls a message into the part of the viewport that is not covered by the sticky composer. */
+    function scrollIntoReadableArea(target, alignment = 'center', behavior = 'smooth') {
+        if (!target) { return; }
+        const composer = document.querySelector('.conversation-composer');
+        const composerTop = composer?.getBoundingClientRect().top;
+        // The composer is part of the document flow, but while it is sticky it
+        // visually covers the bottom of the viewport. Reserve that exact area.
+        const readableBottom = composerTop !== undefined && composerTop > 0 && composerTop < window.innerHeight
+            ? composerTop - 12
+            : window.innerHeight - 12;
+        const readableTop = 12;
+        const targetRect = target.getBoundingClientRect();
+        if (targetRect.top >= readableTop && targetRect.bottom <= readableBottom) { return; }
+
+        const availableHeight = Math.max(1, readableBottom - readableTop);
+        const visibleTargetHeight = Math.min(targetRect.height, Math.max(1, availableHeight - 24));
+        const desiredTop = alignment === 'start'
+            ? readableTop
+            : alignment === 'end'
+                ? readableBottom - visibleTargetHeight
+                : readableTop + (availableHeight - visibleTargetHeight) / 2;
+        window.scrollBy({top: targetRect.top - desiredTop, behavior: behavior});
     }
 
     function appendNewMessages(view, html) {
@@ -269,11 +314,13 @@
     }
 
     function initializeConversationUi() {
-        const firstUnread = document.getElementById('first-unread-message');
-        const resumeMessage = document.querySelector('[data-conversation-resume]');
-        if (!window.location.hash && (resumeMessage || firstUnread)) {
+        const latestMessage = document.querySelector('.conversation-view__messages > .conversation-message:last-of-type');
+        if (!window.location.hash && latestMessage) {
             window.requestAnimationFrame(function () {
-                (resumeMessage || firstUnread).scrollIntoView({block: 'center'});
+                // Opening a chat is the reading-now case: show the newest
+                // message directly above the sticky composer. The unread
+                // divider remains available through the navigation control.
+                scrollIntoReadableArea(latestMessage, 'end', 'auto');
             });
         }
         if (window.location.hash.startsWith('#conversation-message-')) { flashMessage(window.location.hash.slice(1)); }
@@ -334,12 +381,20 @@
         if (new URLSearchParams(window.location.search).get('draftSent') === '1') {
             // This runs only after the server has persisted the message. It is
             // therefore safe to clear HumHub's local Markdown backup now.
-            const editorElement = document.getElementById('conversation-message-editor');
+            const composer = document.querySelector('.conversation-composer');
+            const key = composer?.dataset.conversationDraftKey;
+            const editorId = composer?.dataset.conversationEditorId;
+            const editorElement = editorId ? document.getElementById(editorId) : null;
             const clearRichTextBackup = function () {
                 try {
                     const backupKey = 'RichTextEditor.backup';
                     const backup = JSON.parse(window.sessionStorage.getItem(backupKey) || '{}');
-                    delete backup['conversation-message-editor'];
+                    // RichText uses the hidden textarea ID as the backup key.
+                    // Each conversation has its own editor ID, so drafts cannot
+                    // leak into another chat.
+                    if (editorId) { delete backup[editorId + '_input']; }
+                    // Clean up the shared key written by earlier plugin versions.
+                    delete backup['conversation-message-editor_input'];
                     if (Object.keys(backup).length === 0) {
                         window.sessionStorage.removeItem(backupKey);
                     } else {
@@ -355,8 +410,8 @@
                 }
             };
             const clearVisibleEditor = function () {
-                const input = editor(document.querySelector('.conversation-composer'));
-                if (!input || input.value !== undefined || editorText(document.querySelector('.conversation-composer')) === '') { return; }
+                const input = composer ? editor(composer) : null;
+                if (!input || input.value !== undefined || !composer || editorText(composer) === '') { return; }
                 // This is the browser-native editing path, so ProseMirror updates
                 // its document state even when the optional jQuery bridge is absent.
                 input.focus();
@@ -379,12 +434,12 @@
                 // Asset bundles can initialize ProseMirror after DOM ready. Retry
                 // briefly until its own clear handler has emptied the document and
                 // reset its session backup.
-                if (editorText(document.querySelector('.conversation-composer')) !== '' && clearAttempts++ < 10) {
+                if (composer && editorText(composer) !== '' && clearAttempts++ < 10) {
                     window.setTimeout(clearAfterRichTextReady, 50);
                 }
             };
             window.setTimeout(clearAfterRichTextReady, 50);
-            window.localStorage.removeItem('conversation-draft-' + new URLSearchParams(window.location.search).get('id'));
+            if (key) { window.localStorage.removeItem(key); }
             const cleanUrl = new URL(window.location.href);
             cleanUrl.searchParams.delete('draftSent');
             window.history.replaceState({}, '', cleanUrl.toString());
@@ -405,21 +460,7 @@
             if (reply) {
                 event.preventDefault();
                 const composer = document.querySelector('.conversation-composer');
-                const hidden = composer?.querySelector('[data-conversation-reply-input]');
-                const preview = composer?.querySelector('[data-conversation-reply-preview]');
-                if (!composer || !hidden || !preview) { return; }
-                hidden.value = reply.dataset.conversationReplyId;
-                preview.hidden = false;
-                // Dataset values come from names and message excerpts. Construct
-                // the preview with text nodes so they can never become markup.
-                const author = document.createElement('strong');
-                author.textContent = 'Antwort an ' + (reply.dataset.conversationReplyAuthor || '');
-                const excerpt = document.createElement('span');
-                excerpt.textContent = reply.dataset.conversationReplyExcerpt || '';
-                const clear = document.createElement('button');
-                clear.type = 'button'; clear.setAttribute('aria-label', 'Antwortbezug entfernen'); clear.textContent = '×';
-                clear.addEventListener('click', function () { hidden.value = ''; preview.hidden = true; preview.textContent = ''; }, {once: true});
-                preview.replaceChildren(author, excerpt, clear);
+                if (!setReply(composer, reply)) { return; }
                 composer.scrollIntoView({block: 'center', behavior: 'smooth'});
                 editor(composer)?.focus();
                 return;
@@ -429,7 +470,7 @@
             const navigation = event.target.closest('[data-conversation-jump]');
             if (navigation) {
                 const target = navigation.dataset.conversationJump === 'unread' ? document.getElementById('first-unread-message') : document.querySelector('.conversation-view__messages > .conversation-message:last-of-type');
-                target?.scrollIntoView({block: 'end', behavior: 'smooth'});
+                scrollIntoReadableArea(target, 'end');
             }
             const filter = event.target.closest('[data-conversation-filter]');
             if (filter) {
@@ -479,6 +520,9 @@
             button.type = 'button'; button.className = 'conversation-selection-quote btn btn-default btn-sm'; button.textContent = 'Auswahl zitieren';
             button.addEventListener('click', function () {
                 appendMarkdownQuote(composer, text);
+                // Quoting only part of a message still creates a reply to the
+                // complete source message, preserving the conversation context.
+                setReply(composer, anchor.closest('.conversation-message'));
                 button.remove(); composer.scrollIntoView({block: 'center', behavior: 'smooth'});
             }, {once: true});
             anchor.appendChild(button);

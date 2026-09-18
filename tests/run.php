@@ -203,7 +203,19 @@ foreach (['reply_to_message_id', 'Antworten', 'Auswahl zitieren', 'appendMarkdow
     }
 }
 
+foreach (['conversation-message-editor-', 'data-conversation-editor-id', '/user/mentioning'] as $requiredToken) {
+    if (!str_contains($conversationView, $requiredToken)) {
+        fwrite(STDERR, "Conversation composers must use individual editor IDs and global mentioning: $requiredToken\n");
+        exit(1);
+    }
+}
 $browserScript = (string) file_get_contents($root . '/resources/conversations.js');
+foreach (['function setReply', 'conversationReplyId', 'RichTextEditor.backup', "editorId + '_input'", 'function scrollIntoReadableArea', 'composerTop', 'const latestMessage'] as $requiredToken) {
+    if (!str_contains($browserScript, $requiredToken)) {
+        fwrite(STDERR, "Reply linking or per-chat draft cleanup missing: $requiredToken\n");
+        exit(1);
+    }
+}
 if (str_contains($browserScript, 'preview.innerHTML')) {
     fwrite(STDERR, "Unsafe reply preview markup assignment found.\n");
     exit(1);

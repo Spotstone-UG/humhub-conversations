@@ -20,6 +20,7 @@ $stateService = new ConversationStateService();
 $currentUser = Yii::$app->user->identity;
 $uploads = Upload::withName('fileList[]');
 $composerMessage = new \humhub\modules\conversations\models\ConversationMessage($contentContainer);
+$composerEditorId = 'conversation-message-editor-' . (int) $conversation->id;
 $sendWithCtrlEnter = ConversationUserSetting::sendWithCtrlEnter($currentUser);
 $reactionSummaries = (new ConversationReactionService())->summaries($messages, $currentUser);
 $realtimeConnection = (new ConversationRealtimeService())->socketConnection($conversation, $currentUser);
@@ -178,7 +179,7 @@ $avatar = static function ($user): string {
             <?php endif; ?>
             <?php $isOwn = (int) $message->content->created_by === (int) $currentUser->id; ?>
             <?php $mentionsCurrentUser = Mentioning::find()->where(['object_model' => $message::class, 'object_id' => $message->id, 'user_id' => $currentUser->id])->exists(); ?>
-            <article class="conversation-message <?= $isOwn ? 'conversation-message--own' : '' ?> <?= $message->isDeleted ? 'conversation-message--deleted' : '' ?>" id="conversation-message-<?= $message->id ?>"<?= $lastSeenMessageId !== null && (int) $message->id === (int) $lastSeenMessageId ? ' data-conversation-resume' : '' ?>>
+            <article class="conversation-message <?= $isOwn ? 'conversation-message--own' : '' ?> <?= $message->isDeleted ? 'conversation-message--deleted' : '' ?>" id="conversation-message-<?= $message->id ?>" data-conversation-reply-id="<?= $message->id ?>" data-conversation-reply-author="<?= Html::encode($message->content->createdBy->displayName) ?>" data-conversation-reply-excerpt="<?= Html::encode(mb_strimwidth(strip_tags((string) $message->message), 0, 120, '…')) ?>"<?= $lastSeenMessageId !== null && (int) $message->id === (int) $lastSeenMessageId ? ' data-conversation-resume' : '' ?>>
                 <div class="conversation-message__author">
                     <span class="conversation-avatar"><?= $avatar($message->content->createdBy) ?></span>
                     <span><?= Html::encode($message->content->createdBy->displayName) ?></span>
@@ -235,7 +236,7 @@ $avatar = static function ($user): string {
                 </div>
                 <?php if (!$message->isDeleted): ?>
                 <div class="conversation-message__actions">
-                    <?= Html::a('Antworten', '#conversation-composer', [
+                    <?= Html::a('Antworten', '#conversation-composer-' . (int) $conversation->id, [
                         'class' => 'conversation-message__reply-trigger',
                         'data-conversation-reply-id' => $message->id,
                         'data-conversation-reply-author' => $message->content->createdBy->displayName,
@@ -281,7 +282,7 @@ $avatar = static function ($user): string {
     <div class="conversation-typing" data-conversation-typing hidden aria-live="polite"></div>
 
     <?php if (!$conversation->isClosed): ?>
-        <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/message', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-composer', 'id' => 'conversation-composer', 'data-conversation-draft-key' => 'conversation-draft-' . (int) $conversation->id, 'data-conversation-send-with-ctrl-enter' => $sendWithCtrlEnter ? 'true' : 'false']) ?>
+        <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/message', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-composer', 'id' => 'conversation-composer-' . (int) $conversation->id, 'data-conversation-draft-key' => 'conversation-draft-' . (int) $conversation->id, 'data-conversation-editor-id' => $composerEditorId, 'data-conversation-send-with-ctrl-enter' => $sendWithCtrlEnter ? 'true' : 'false']) ?>
             <div class="conversation-composer__reply" hidden data-conversation-reply-preview></div>
             <?= Html::hiddenInput('ConversationMessage[reply_to_message_id]', '', ['data-conversation-reply-input' => true]) ?>
             <?= Html::hiddenInput('conversationSubmissionToken', Yii::$app->security->generateRandomString(32), ['data-conversation-submission-token' => true]) ?>
@@ -289,10 +290,13 @@ $avatar = static function ($user): string {
                 'model' => $composerMessage,
                 'attribute' => 'message',
                 'preset' => 'markdown',
-                'id' => 'conversation-message-editor',
+                'id' => $composerEditorId,
                 'backupInterval' => 3,
                 'placeholder' => 'Nachricht schreiben …  Mit @ kannst du Menschen erwähnen.',
-                'mentioningUrl' => $contentContainer->createUrl('/user/mentioning/space', ['id' => $contentContainer->id]),
+                // Global mention search also finds eligible people who have not
+                // chosen to follow this particular chat. HumHub verifies access
+                // again before it delivers the native mention notification.
+                'mentioningUrl' => '/user/mentioning',
             ]) ?>
             <details class="conversation-composer__markdown-help"><summary>Formatierung</summary><span><code>**fett**</code> · <code>*kursiv*</code> · <code>&gt; Zitat</code> · <code>- Liste</code> · <code>1. Liste</code></span></details>
             <div class="conversation-composer__controls">
