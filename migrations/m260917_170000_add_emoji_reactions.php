@@ -16,7 +16,17 @@ final class m260917_170000_add_emoji_reactions extends Migration
             'FOREIGN KEY ([[message_id]]) REFERENCES {{%conversation_message}} ([[id]]) ON DELETE CASCADE',
             'FOREIGN KEY ([[user_id]]) REFERENCES {{%user}} ([[id]]) ON DELETE CASCADE',
         ]);
+        $this->ensureEmojiStorage();
         $this->createIndex('idx_conversation_reaction_message', '{{%conversation_reaction}}', ['message_id', 'created_at']);
+    }
+
+    private function ensureEmojiStorage(): void
+    {
+        if ($this->db->driverName !== 'mysql') {
+            return;
+        }
+
+        $this->execute('ALTER TABLE {{%conversation_reaction}} MODIFY [[emoji]] VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL');
     }
 
     public function safeDown(): bool

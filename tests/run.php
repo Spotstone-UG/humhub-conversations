@@ -21,6 +21,7 @@ $required = [
     'migrations/m260918_010000_add_composer_send_shortcut.php',
     'migrations/m260918_020000_add_typing_indicator_setting.php',
     'migrations/m260918_030000_enable_typing_indicators_by_default.php',
+    'migrations/m260918_040000_upgrade_emoji_reaction_storage.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
     'models/ConversationMessageSubmission.php',
@@ -136,6 +137,16 @@ $reactionController = (string) file_get_contents($root . '/controllers/Conversat
 foreach (['toggle', 'EmojiPaletteService', 'actionReact'] as $requiredToken) {
     if (!str_contains($reactionService . $reactionController, $requiredToken)) {
         fwrite(STDERR, "Emoji reaction implementation missing: $requiredToken\n");
+        exit(1);
+    }
+}
+
+$emojiMigrations = (string) file_get_contents($root . '/migrations/m260917_170000_add_emoji_reactions.php')
+    . (string) file_get_contents($root . '/migrations/m260917_190000_add_post_emoji_reactions.php')
+    . (string) file_get_contents($root . '/migrations/m260918_040000_upgrade_emoji_reaction_storage.php');
+foreach (['conversation_reaction', 'post_emoji_reaction', 'CHARACTER SET utf8mb4', 'utf8mb4_bin'] as $requiredToken) {
+    if (!str_contains($emojiMigrations, $requiredToken)) {
+        fwrite(STDERR, "Emoji reaction storage is not utf8mb4-safe: $requiredToken\n");
         exit(1);
     }
 }

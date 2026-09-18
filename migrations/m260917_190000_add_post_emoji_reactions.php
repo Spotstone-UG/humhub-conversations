@@ -16,7 +16,17 @@ final class m260917_190000_add_post_emoji_reactions extends Migration
             'FOREIGN KEY ([[post_id]]) REFERENCES {{%post}} ([[id]]) ON DELETE CASCADE',
             'FOREIGN KEY ([[user_id]]) REFERENCES {{%user}} ([[id]]) ON DELETE CASCADE',
         ]);
+        $this->ensureEmojiStorage();
         $this->createIndex('idx_post_emoji_reaction_post', '{{%post_emoji_reaction}}', ['post_id', 'created_at']);
+    }
+
+    private function ensureEmojiStorage(): void
+    {
+        if ($this->db->driverName !== 'mysql') {
+            return;
+        }
+
+        $this->execute('ALTER TABLE {{%post_emoji_reaction}} MODIFY [[emoji]] VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL');
     }
 
     public function safeDown(): bool
