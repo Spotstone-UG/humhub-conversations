@@ -149,6 +149,42 @@
 .conversation-composer__conversation-menu { position: relative; }
 .conversation-composer__menu-trigger { align-items: center; border-radius: .4rem; color: var(--bs-secondary-color, #667085); display: inline-flex; font-size: 1.15rem; height: 2.1rem; justify-content: center; text-decoration: none; width: 2rem; }
 .conversation-composer__menu-trigger:hover, .conversation-composer__conversation-menu.show .conversation-composer__menu-trigger { background: var(--bs-secondary-bg, #f3f4f6); color: #1d4f48; }
+
+/* A conversation is a focused reading and writing surface. The surrounding
+ * Space remains one step away through the back link instead of consuming the
+ * vertical space needed for messages. */
+body.conversation-page { --conversation-top-offset: 7rem; --conversation-composer-height: 0px; height: 100dvh; overflow: hidden; padding-top: var(--conversation-top-offset); }
+body.conversation-page .space-layout-container { height: calc(100dvh - var(--conversation-top-offset)); margin: 0; max-width: none; padding: 0; }
+body.conversation-page .space-layout-container > :not(.space-content),
+body.conversation-page .space-content > .layout-nav-container,
+body.conversation-page .space-content > .layout-sidebar-container { display: none; }
+body.conversation-page .space-content { height: 100%; margin: 0; }
+body.conversation-page .space-content > .layout-content-container { flex: 0 0 100%; height: 100%; max-width: 100%; padding: 0; width: 100%; }
+body.conversation-page .conversation-view { background: var(--bs-body-bg, #fff); display: flex; flex-direction: column; height: 100%; margin: 0 auto; max-width: 68rem; overflow: hidden; padding: 0 1rem; position: relative; }
+body.conversation-page .conversation-view__header { flex: 0 0 auto; margin: 0; padding: .85rem 0 .7rem; }
+body.conversation-page .conversation-view__header h1 { font-size: clamp(1.15rem, 2vw, 1.45rem); margin: .35rem 0 .15rem; }
+body.conversation-page .conversation-view__header p { font-size: .88rem; margin: 0; }
+body.conversation-page .conversation-view__feed { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding: 0 .15rem 1rem; scrollbar-gutter: stable; }
+body.conversation-page .conversation-view__navigation { background: var(--bs-body-bg, #fff); margin: 0; padding: .35rem 0 .6rem; position: sticky; top: 0; z-index: 2; }
+body.conversation-page .conversation-view__navigation label { flex-basis: 14rem; }
+body.conversation-page .conversation-view__messages { min-height: 100%; }
+body.conversation-page .conversation-composer { background: var(--bs-body-bg, #fff); bottom: auto; flex: 0 0 auto; margin: 0 -.15rem; padding: .65rem .15rem max(.65rem, env(safe-area-inset-bottom)); position: relative; z-index: 3; }
+body.conversation-page .conversation-composer [contenteditable="true"] { max-height: min(26dvh, 14rem); overflow-y: auto; }
+body.conversation-page .conversation-new-message-notice { bottom: calc(var(--conversation-composer-height) + 1rem); position: absolute; z-index: 4; }
+
+@media (max-width: 767.98px) {
+    body.conversation-page { --conversation-top-offset: 0px; padding-top: 0; }
+    body.conversation-page #topbar-first,
+    body.conversation-page #topbar-second { display: none; }
+    body.conversation-page .conversation-view { max-width: none; padding: 0 .75rem; }
+    body.conversation-page .conversation-view__header { padding: .7rem 0 .55rem; }
+    body.conversation-page .conversation-view__header p { display: none; }
+    body.conversation-page .conversation-view__back { font-size: .82rem; }
+    body.conversation-page .conversation-view__actions { margin-top: 0; }
+    body.conversation-page .conversation-message { max-width: 91%; }
+    body.conversation-page .conversation-composer { margin: 0 -.75rem; padding-left: .75rem; padding-right: .75rem; }
+    body.conversation-page .conversation-composer [contenteditable="true"] { max-height: 30dvh; }
+}
 .subconversation-card { background: #f0f7f5; border: 1px solid #c7dfd8; border-radius: .75rem; margin: .55rem 0 1rem; max-width: 92%; padding: .85rem 1rem; }
 .subconversation-card h3 { font-size: 1rem; margin: .15rem 0 .25rem; }
 .subconversation-card h3 a { color: inherit; text-decoration: none; }

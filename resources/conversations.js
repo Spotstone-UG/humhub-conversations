@@ -159,6 +159,24 @@
     /** Scrolls a message into the part of the viewport that is not covered by the sticky composer. */
     function scrollIntoReadableArea(target, alignment = 'center', behavior = 'smooth') {
         if (!target) { return; }
+        const feed = target.closest('.conversation-view__feed');
+        if (feed) {
+            const feedRect = feed.getBoundingClientRect();
+            const targetRect = target.getBoundingClientRect();
+            const readableTop = feedRect.top + 12;
+            const readableBottom = feedRect.bottom - 12;
+            if (targetRect.top >= readableTop && targetRect.bottom <= readableBottom) { return; }
+
+            const availableHeight = Math.max(1, readableBottom - readableTop);
+            const visibleTargetHeight = Math.min(targetRect.height, Math.max(1, availableHeight - 24));
+            const desiredTop = alignment === 'start'
+                ? readableTop
+                : alignment === 'end'
+                    ? readableBottom - visibleTargetHeight
+                    : readableTop + (availableHeight - visibleTargetHeight) / 2;
+            feed.scrollBy({top: targetRect.top - desiredTop, behavior: behavior});
+            return;
+        }
         const composer = document.querySelector('.conversation-composer');
         const composerTop = composer?.getBoundingClientRect().top;
         // The composer is part of the document flow, but while it is sticky it
@@ -186,6 +204,8 @@
         const sourceMessages = source?.querySelector('.conversation-view__messages');
         if (!source || !targetMessages || !sourceMessages) { return false; }
 
+        const feed = view.querySelector('.conversation-view__feed');
+        const followMessages = !feed || feed.scrollHeight - feed.scrollTop - feed.clientHeight < 48;
         const knownId = Number(view.dataset.conversationLatestMessageId || 0);
         const items = Array.from(sourceMessages.children);
         let firstNewIndex = items.findIndex(function (item) {
@@ -203,14 +223,37 @@
         });
         const latestId = source.dataset.conversationLatestMessageId;
         if (latestId) { view.dataset.conversationLatestMessageId = latestId; }
-        scrollToNewMessages(appended);
+        if (followMessages) {
+            scrollToNewMessages(appended);
+        } else {
+            showNewMessageNotice(view);
+        }
         return appended.length > 0;
+    }
+
+    function showNewMessageNotice(view) {
+        let notice = view.querySelector('[data-conversation-new-message-notice]');
+        if (!notice) {
+            notice = document.createElement('button');
+            notice.type = 'button';
+            notice.className = 'conversation-new-message-notice btn btn-primary btn-sm';
+            notice.dataset.conversationNewMessageNotice = 'true';
+            notice.addEventListener('click', function () {
+                const latest = view.querySelector('.conversation-view__messages > .conversation-message:last-of-type');
+                scrollIntoReadableArea(latest, 'end');
+                notice.remove();
+            });
+            view.appendChild(notice);
+        }
+        notice.textContent = 'Neue Nachrichten ↓';
     }
 
     function scrollToNewMessages(messages) {
         if (messages.length === 0) { return; }
         // Show the entire new-message run when it fits. Otherwise begin with
         // the oldest of the newest messages that fit into one viewport.
+        const feed = messages[0]?.closest('.conversation-view__feed');
+        const viewportHeight = feed?.clientHeight || window.innerHeight;
         let requiredHeight = 0;
         let firstVisible = messages.at(-1);
         for (let index = messages.length - 1; index >= 0; index--) {
@@ -218,11 +261,11 @@
             const style = window.getComputedStyle(item);
             const itemHeight = item.getBoundingClientRect().height
                 + parseFloat(style.marginTop || '0') + parseFloat(style.marginBottom || '0');
-            if (requiredHeight > 0 && requiredHeight + itemHeight > window.innerHeight) { break; }
+            if (requiredHeight > 0 && requiredHeight + itemHeight > viewportHeight) { break; }
             requiredHeight += itemHeight;
             firstVisible = item;
         }
-        firstVisible?.scrollIntoView({block: 'start', behavior: 'smooth'});
+        scrollIntoReadableArea(firstVisible, 'start');
     }
 
     function showNewMessages(view) {
@@ -314,6 +357,23 @@
     }
 
     function initializeConversationUi() {
+        const conversationView = document.querySelector('[data-conversation-live-url]');
+        // HumHub can replace just the content area when navigating back to the
+        // overview. Keep the focused layout strictly scoped to an open chat.
+        document.body.classList.toggle('conversation-page', Boolean(conversationView));
+        if (conversationView) {
+            const syncViewport = function () {
+                const topbars = Array.from(document.querySelectorAll('#topbar-first, #topbar-second'));
+                const topOffset = Math.max(0, ...topbars.map(function (bar) { return bar.getBoundingClientRect().bottom; }));
+                document.documentElement.style.setProperty('--conversation-top-offset', Math.ceil(topOffset) + 'px');
+                const composer = document.querySelector('.conversation-composer');
+                document.documentElement.style.setProperty('--conversation-composer-height', Math.ceil(composer?.getBoundingClientRect().height || 0) + 'px');
+            };
+            syncViewport();
+            window.addEventListener('resize', syncViewport, {passive: true});
+            const composer = document.querySelector('.conversation-composer');
+            if (composer && window.ResizeObserver) { new ResizeObserver(syncViewport).observe(composer); }
+        }
         const latestMessage = document.querySelector('.conversation-view__messages > .conversation-message:last-of-type');
         if (!window.location.hash && latestMessage) {
             window.requestAnimationFrame(function () {
@@ -323,7 +383,17 @@
                 scrollIntoReadableArea(latestMessage, 'end', 'auto');
             });
         }
-        if (window.location.hash.startsWith('#conversation-message-')) { flashMessage(window.location.hash.slice(1)); }
+        const highlightHashTarget = function () {
+            if (!window.location.hash.startsWith('#conversation-message-')) { return; }
+            // Browsers resolve anchors before the flex-based chat surface has
+            // finished sizing. Reposition afterwards so the target is never
+            // left underneath the composer or at an arbitrary page position.
+            window.requestAnimationFrame(function () {
+                flashMessage(window.location.hash.slice(1));
+            });
+        };
+        highlightHashTarget();
+        window.addEventListener('hashchange', highlightHashTarget);
 
         document.querySelectorAll('.conversation-composer').forEach(function (composer) {
             const key = composer.dataset.conversationDraftKey;
@@ -531,19 +601,18 @@
 
         document.addEventListener('keydown', handleComposerShortcut, true);
 
-        const view = document.querySelector('[data-conversation-live-url]');
-        if (view) {
+        if (conversationView) {
             // A configured socket relay notifies this browser immediately. The
             // polling path below remains the safe fallback for every setup.
-            connectRealtime(view);
-            initializeTyping(view);
+            connectRealtime(conversationView);
+            initializeTyping(conversationView);
             window.setInterval(function () {
                 if (document.hidden) { return; }
-                window.fetch(view.dataset.conversationLiveUrl, {credentials: 'same-origin', headers: {'Accept': 'application/json'}})
+                window.fetch(conversationView.dataset.conversationLiveUrl, {credentials: 'same-origin', headers: {'Accept': 'application/json'}})
                     .then(function (response) { return response.ok ? response.json() : null; })
                     .then(function (state) {
-                        if (!state || Number(state.latestMessageId) <= Number(view.dataset.conversationLatestMessageId)) { return; }
-                        showNewMessages(view);
+                        if (!state || Number(state.latestMessageId) <= Number(conversationView.dataset.conversationLatestMessageId)) { return; }
+                        showNewMessages(conversationView);
                     }).catch(function () { /* A temporary network failure must never interrupt writing. */ });
             }, 12000);
         }

@@ -66,6 +66,7 @@ $avatar = static function ($user): string {
         </div>
     </header>
 
+    <div class="conversation-view__feed" tabindex="0" aria-label="Chatverlauf">
     <?php if ($conversation->isClosed): ?>
         <section class="conversation-outcome" id="conversation-consensus" aria-label="Gesprächsergebnis und Konsens">
             <span class="conversation-outcome__label">Gesprächsergebnis</span>
@@ -159,8 +160,9 @@ $avatar = static function ($user): string {
     <?php endif; ?>
 
     <nav class="conversation-view__navigation" aria-label="Chat-Navigation">
-        <button type="button" class="btn btn-default btn-sm" data-conversation-jump="unread">Zu neuen Nachrichten</button>
-        <button type="button" class="btn btn-default btn-sm" data-conversation-jump="latest">Zu den neuesten Nachrichten</button>
+        <?php if ($unreadCount > 0): ?>
+            <button type="button" class="btn btn-default btn-sm" data-conversation-jump="unread">Zu neuen Nachrichten</button>
+        <?php endif; ?>
         <label><span class="visually-hidden">Chat durchsuchen</span><input type="search" class="form-control input-sm" placeholder="Im Chat suchen" data-conversation-search></label>
     </nav>
     <div class="conversation-view__messages" aria-live="polite">
@@ -280,6 +282,7 @@ $avatar = static function ($user): string {
     </div>
 
     <div class="conversation-typing" data-conversation-typing hidden aria-live="polite"></div>
+    </div>
 
     <?php if (!$conversation->isClosed): ?>
         <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/message', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-composer', 'id' => 'conversation-composer-' . (int) $conversation->id, 'data-conversation-draft-key' => 'conversation-draft-' . (int) $conversation->id, 'data-conversation-editor-id' => $composerEditorId, 'data-conversation-send-with-ctrl-enter' => $sendWithCtrlEnter ? 'true' : 'false']) ?>

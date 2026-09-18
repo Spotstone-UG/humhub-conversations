@@ -210,7 +210,7 @@ foreach (['conversation-message-editor-', 'data-conversation-editor-id', '/user/
     }
 }
 $browserScript = (string) file_get_contents($root . '/resources/conversations.js');
-foreach (['function setReply', 'conversationReplyId', 'RichTextEditor.backup', "editorId + '_input'", 'function scrollIntoReadableArea', 'composerTop', 'const latestMessage'] as $requiredToken) {
+foreach (['function setReply', 'conversationReplyId', 'RichTextEditor.backup', "editorId + '_input'", 'function scrollIntoReadableArea', 'composerTop', 'const latestMessage', 'showNewMessageNotice', 'conversation-page', 'conversation-top-offset', 'conversation-composer-height', 'ResizeObserver', 'hashchange'] as $requiredToken) {
     if (!str_contains($browserScript, $requiredToken)) {
         fwrite(STDERR, "Reply linking or per-chat draft cleanup missing: $requiredToken\n");
         exit(1);
