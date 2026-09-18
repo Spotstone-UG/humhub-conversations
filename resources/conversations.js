@@ -76,9 +76,11 @@
         if (composer.dataset.conversationSubmitting === 'true' || editorText(composer) === '') { return; }
         const button = composer.querySelector('button[type="submit"]');
         if (!button || button.disabled || button.getAttribute('aria-disabled') === 'true') { return; }
-        // HumHub's RichText editor synchronizes its hidden field in the
-        // submit button's click handler. Use that exact path; requestSubmit()
-        // would bypass it and submit an empty message.
+        const input = editor(composer);
+        // HumHub serializes ProseMirror into its hidden textarea on focusout.
+        // A physical button click moves the focus first; button.click() does
+        // not. Synchronize explicitly so Enter never posts an empty message.
+        if (input && input.value === undefined) { input.blur(); }
         button.click();
     }
 
@@ -156,9 +158,26 @@
         });
         const latestId = source.dataset.conversationLatestMessageId;
         if (latestId) { view.dataset.conversationLatestMessageId = latestId; }
-        const newest = appended.at(-1);
-        if (newest) { newest.scrollIntoView({block: 'start', behavior: 'smooth'}); }
+        scrollToNewMessages(appended);
         return appended.length > 0;
+    }
+
+    function scrollToNewMessages(messages) {
+        if (messages.length === 0) { return; }
+        // Show the entire new-message run when it fits. Otherwise begin with
+        // the oldest of the newest messages that fit into one viewport.
+        let requiredHeight = 0;
+        let firstVisible = messages.at(-1);
+        for (let index = messages.length - 1; index >= 0; index--) {
+            const item = messages[index];
+            const style = window.getComputedStyle(item);
+            const itemHeight = item.getBoundingClientRect().height
+                + parseFloat(style.marginTop || '0') + parseFloat(style.marginBottom || '0');
+            if (requiredHeight > 0 && requiredHeight + itemHeight > window.innerHeight) { break; }
+            requiredHeight += itemHeight;
+            firstVisible = item;
+        }
+        firstVisible?.scrollIntoView({block: 'start', behavior: 'smooth'});
     }
 
     function showNewMessages(view) {

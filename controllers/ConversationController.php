@@ -209,10 +209,13 @@ final class ConversationController extends ContentContainerController
             ->andWhere(['<>', 'user_id', Yii::$app->user->id])
             ->column();
         $activeIds = array_values(array_filter($userIds, fn($userId) => Yii::$app->cache->get($this->typingCacheKey($conversation->id, (int) $userId)) !== false));
-        $activeIds = ConversationUserSetting::find()
+        $disabledIds = ConversationUserSetting::find()
             ->select('user_id')
-            ->where(['user_id' => $activeIds, 'typing_indicators_enabled' => 1])
+            ->where(['user_id' => $activeIds, 'typing_indicators_enabled' => 0])
             ->column();
+        // A missing row inherits the global default (typing enabled). Only an
+        // explicit personal opt-out suppresses the person from this display.
+        $activeIds = array_values(array_diff($activeIds, $disabledIds));
         if ($activeIds === []) {
             return $this->asJson(['users' => []]);
         }

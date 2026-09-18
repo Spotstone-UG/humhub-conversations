@@ -216,7 +216,7 @@ $composerShortcut = (string) file_get_contents($root . '/models/ConversationUser
     . (string) file_get_contents($root . '/views/conversation/view.php')
     . $browserScript
     . (string) file_get_contents($root . '/migrations/m260918_010000_add_composer_send_shortcut.php');
-foreach (['sendWithCtrlEnter', 'send_with_ctrl_enter', 'data-conversation-send-with-ctrl-enter', 'conversation-composer__shortcut-menu', 'insertEditorNewline', 'handleComposerShortcut', 'button.click()', 'typingIndicatorsEnabled', 'typing_indicators_enabled'] as $requiredToken) {
+foreach (['sendWithCtrlEnter', 'send_with_ctrl_enter', 'data-conversation-send-with-ctrl-enter', 'conversation-composer__shortcut-menu', 'insertEditorNewline', 'handleComposerShortcut', 'input.blur()', 'button.click()', 'typingIndicatorsEnabled', 'typing_indicators_enabled', 'scrollToNewMessages'] as $requiredToken) {
     if (!str_contains($composerShortcut, $requiredToken)) {
         fwrite(STDERR, "Global composer shortcut setting missing: $requiredToken\n");
         exit(1);
