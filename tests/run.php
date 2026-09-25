@@ -22,6 +22,7 @@ $required = [
     'migrations/m260918_020000_add_typing_indicator_setting.php',
     'migrations/m260918_030000_enable_typing_indicators_by_default.php',
     'migrations/m260918_040000_upgrade_emoji_reaction_storage.php',
+    'migrations/m260925_010000_add_content_emoji_reactions.php',
     'models/Conversation.php',
     'models/ConversationMessage.php',
     'models/ConversationMessageSubmission.php',
@@ -31,6 +32,7 @@ $required = [
     'models/ConversationReaction.php',
     'models/ConversationMessageRevision.php',
     'models/PostEmojiReaction.php',
+    'models/ContentEmojiReaction.php',
     'models/ConversationConsensusProposal.php',
     'models/ConversationConsensusResponse.php',
     'models/ConversationMutedSpace.php',
@@ -46,14 +48,18 @@ $required = [
     'services/ConversationReactionService.php',
     'services/EmojiPaletteService.php',
     'services/PostEmojiReactionService.php',
+    'services/ContentEmojiReactionService.php',
     'controllers/ConversationController.php',
     'controllers/OverviewController.php',
     'views/overview/_space-group.php',
     'controllers/PostReactionController.php',
+    'controllers/ContentReactionController.php',
     'widgets/ConversationForm.php',
     'widgets/views/conversationForm.php',
     'widgets/PostEmojiReactionLink.php',
     'widgets/views/postEmojiReactionLink.php',
+    'widgets/ContentEmojiReactionLink.php',
+    'widgets/views/contentEmojiReactionLink.php',
     'config/realtime.local.php.example',
     'config/conversations-realtime.php.example',
     'realtime/server.mjs',
@@ -143,16 +149,17 @@ foreach (['toggle', 'EmojiPaletteService', 'actionReact'] as $requiredToken) {
 
 $emojiMigrations = (string) file_get_contents($root . '/migrations/m260917_170000_add_emoji_reactions.php')
     . (string) file_get_contents($root . '/migrations/m260917_190000_add_post_emoji_reactions.php')
-    . (string) file_get_contents($root . '/migrations/m260918_040000_upgrade_emoji_reaction_storage.php');
-foreach (['conversation_reaction', 'post_emoji_reaction', 'CHARACTER SET utf8mb4', 'utf8mb4_bin'] as $requiredToken) {
+    . (string) file_get_contents($root . '/migrations/m260918_040000_upgrade_emoji_reaction_storage.php')
+    . (string) file_get_contents($root . '/migrations/m260925_010000_add_content_emoji_reactions.php');
+foreach (['conversation_reaction', 'post_emoji_reaction', 'content_emoji_reaction', 'CHARACTER SET utf8mb4', 'utf8mb4_bin'] as $requiredToken) {
     if (!str_contains($emojiMigrations, $requiredToken)) {
         fwrite(STDERR, "Emoji reaction storage is not utf8mb4-safe: $requiredToken\n");
         exit(1);
     }
 }
 
-$postReaction = (string) file_get_contents($root . '/services/PostEmojiReactionService.php') . (string) file_get_contents($root . '/controllers/PostReactionController.php') . (string) file_get_contents($root . '/Events.php');
-foreach (['PostEmojiReaction', 'EmojiPaletteService', 'onWallEntryLinksInit', 'onWallEntryLinksRun', 'removeWidget(LikeLink::class)', 'WallEntryLinks', 'container instanceof Space'] as $requiredToken) {
+$postReaction = (string) file_get_contents($root . '/services/ContentEmojiReactionService.php') . (string) file_get_contents($root . '/controllers/ContentReactionController.php') . (string) file_get_contents($root . '/Events.php');
+foreach (['ContentEmojiReaction', 'ContentActiveRecord', 'EmojiPaletteService', 'onWallEntryLinksInit', 'onWallEntryLinksRun', 'removeWidget(LikeLink::class)', 'WallEntryLinks', 'ContentEmojiReactionLink::supports'] as $requiredToken) {
     if (!str_contains($postReaction, $requiredToken)) {
         fwrite(STDERR, "Post emoji reaction integration missing: $requiredToken\n");
         exit(1);

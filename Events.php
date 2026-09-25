@@ -6,11 +6,10 @@ namespace humhub\modules\conversations;
 use humhub\modules\ui\menu\MenuLink;
 use humhub\modules\content\widgets\WallEntryLinks;
 use humhub\modules\like\widgets\LikeLink;
-use humhub\modules\post\models\Post;
-use humhub\modules\conversations\widgets\PostEmojiReactionLink;
+use humhub\modules\content\components\ContentActiveRecord;
+use humhub\modules\conversations\widgets\ContentEmojiReactionLink;
 use humhub\modules\conversations\assets\ConversationAsset;
 use humhub\modules\conversations\services\ConversationOverviewService;
-use humhub\modules\space\models\Space;
 use humhub\modules\space\widgets\Menu as SpaceMenu;
 use humhub\widgets\TopMenu;
 use humhub\helpers\ControllerHelper;
@@ -20,19 +19,19 @@ final class Events
 {
     public static function onWallEntryLinksInit($event): void
     {
-        if (!$event->sender->object instanceof Post
-            || !$event->sender->object->content->container instanceof Space) {
+        if (!$event->sender->object instanceof ContentActiveRecord
+            || !ContentEmojiReactionLink::supports($event->sender->object)) {
             return;
         }
 
-        $event->sender->addWidget(PostEmojiReactionLink::class, ['object' => $event->sender->object], ['sortOrder' => 30]);
+        $event->sender->addWidget(ContentEmojiReactionLink::class, ['object' => $event->sender->object], ['sortOrder' => 30]);
     }
 
-    /** Replaces the native binary Like control on posts with emoji reactions. */
+    /** Replaces the native binary Like control on every supported content item. */
     public static function onWallEntryLinksRun($event): void
     {
-        if (!$event->sender->object instanceof Post
-            || !$event->sender->object->content->container instanceof Space) {
+        if (!$event->sender->object instanceof ContentActiveRecord
+            || !ContentEmojiReactionLink::supports($event->sender->object)) {
             return;
         }
 
