@@ -13,6 +13,7 @@ use yii\web\NotFoundHttpException;
 
 final class PostReactionController extends ContentContainerController
 {
+    /** Governance creates ordinary Space posts, covered by this route. */
     public $validContentContainerClasses = [Space::class];
 
     public function actionPicker(int $postId): string

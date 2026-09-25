@@ -23,11 +23,19 @@
 .conversation-card__meta { color: var(--bs-secondary-color, #667085); display: flex; flex-wrap: wrap; gap: .35rem; font-size: .875rem; }
 .conversation-card__counts { display: inline-flex; gap: .7rem; margin-left: auto; }
 .conversation-card__unread { color: #b42318; font-weight: 600; }
-.post-emoji-reaction { align-items: center; display: inline-flex; flex-wrap: wrap; gap: .18rem; }
-.post-emoji-reaction__trigger { color: var(--bs-secondary-color, #667085); text-decoration: none; }
-.post-emoji-reaction__form { display: inline; margin: 0; }
-.post-emoji-reaction__chip { background: var(--bs-body-bg, #fff); border: 1px solid var(--bs-border-color, #e5e7eb); border-radius: 1rem; box-shadow: 0 1px 2px rgb(0 0 0 / 8%); font-size: .76rem; padding: .04rem .32rem; }
-.post-emoji-reaction__chip--mine { background: #e7f1ff; border-color: #86b7fe; }
+/* A single reaction bar works for every normal HumHub post, including the
+ * stream posts that sociocratic-governance creates.  Keep the controls
+ * compact enough to sit beside the other wall-entry actions on small screens. */
+.post-emoji-reaction { align-items: center; display: inline-flex; flex-wrap: wrap; gap: .3rem; max-width: 100%; vertical-align: middle; }
+.post-emoji-reaction__summary { align-items: center; display: inline-flex; flex-wrap: wrap; gap: .25rem; }
+.post-emoji-reaction__trigger { align-items: center; background: transparent; border: 1px solid transparent; border-radius: 999px; color: var(--bs-secondary-color, #667085); display: inline-flex; font-size: .82rem; gap: .32rem; min-height: 1.9rem; padding: .2rem .55rem; text-decoration: none; transition: background-color .12s ease, border-color .12s ease, color .12s ease; }
+.post-emoji-reaction__trigger:hover, .post-emoji-reaction__trigger:focus { background: var(--bs-secondary-bg, #f3f4f6); border-color: var(--bs-border-color, #e5e7eb); color: #1d4f48; outline: 0; text-decoration: none; }
+.post-emoji-reaction__trigger:focus-visible, .post-emoji-reaction__chip:focus-visible { box-shadow: 0 0 0 2px #1d4f48; }
+.post-emoji-reaction__form { display: inline-flex; margin: 0; }
+.post-emoji-reaction__chip { align-items: center; background: var(--bs-body-bg, #fff); border: 1px solid var(--bs-border-color, #e5e7eb); border-radius: 999px; box-shadow: 0 1px 2px rgb(0 0 0 / 8%); color: inherit; display: inline-flex; font-size: .8rem; line-height: 1; min-height: 1.9rem; padding: .18rem .55rem; transition: background-color .12s ease, border-color .12s ease, transform .12s ease; }
+.post-emoji-reaction__chip:hover { background: var(--bs-secondary-bg, #f3f4f6); border-color: #78a99b; transform: translateY(-1px); }
+.post-emoji-reaction__chip--mine { background: #e8f3ef; border-color: #78a99b; color: #174c42; font-weight: 600; }
+@media (max-width: 575.98px) { .post-emoji-reaction { gap: .22rem; } .post-emoji-reaction__trigger, .post-emoji-reaction__chip { min-height: 1.75rem; padding-left: .45rem; padding-right: .45rem; } }
 
 /* Conversations extend the Stream composer; the standard Beitrag must remain visible. */
 #contentFormMenu [data-action-url*="post%2Fpost%2Fcreate-form"] { display: block !important; }

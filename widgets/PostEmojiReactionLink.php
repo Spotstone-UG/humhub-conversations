@@ -9,7 +9,7 @@ use humhub\modules\post\models\Post;
 use humhub\components\Widget;
 use Yii;
 
-/** Adds the full emoji palette beside HumHub's standard Like link on posts. */
+/** Adds the full emoji palette to every readable, standard HumHub post. */
 final class PostEmojiReactionLink extends Widget
 {
     public $object;

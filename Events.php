@@ -10,6 +10,7 @@ use humhub\modules\post\models\Post;
 use humhub\modules\conversations\widgets\PostEmojiReactionLink;
 use humhub\modules\conversations\assets\ConversationAsset;
 use humhub\modules\conversations\services\ConversationOverviewService;
+use humhub\modules\space\models\Space;
 use humhub\modules\space\widgets\Menu as SpaceMenu;
 use humhub\widgets\TopMenu;
 use humhub\helpers\ControllerHelper;
@@ -19,7 +20,8 @@ final class Events
 {
     public static function onWallEntryLinksInit($event): void
     {
-        if (!$event->sender->object instanceof Post) {
+        if (!$event->sender->object instanceof Post
+            || !$event->sender->object->content->container instanceof Space) {
             return;
         }
 
@@ -29,7 +31,8 @@ final class Events
     /** Replaces the native binary Like control on posts with emoji reactions. */
     public static function onWallEntryLinksRun($event): void
     {
-        if (!$event->sender->object instanceof Post) {
+        if (!$event->sender->object instanceof Post
+            || !$event->sender->object->content->container instanceof Space) {
             return;
         }
 
