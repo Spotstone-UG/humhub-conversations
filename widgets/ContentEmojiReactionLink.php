@@ -9,10 +9,9 @@ use humhub\modules\content\components\ContentActiveRecord;
 use humhub\modules\conversations\assets\ConversationAsset;
 use humhub\modules\conversations\services\ContentEmojiReactionService;
 use humhub\modules\like\Module as LikeModule;
-use humhub\modules\space\models\Space;
 use Yii;
 
-/** Adds the full emoji palette to every likeable content item in a Space. */
+/** Adds the full emoji palette to every visible, likeable content item. */
 final class ContentEmojiReactionLink extends Widget
 {
     public $object;
@@ -24,7 +23,6 @@ final class ContentEmojiReactionLink extends Widget
     {
         if (!($object instanceof ContentActiveRecord || $object instanceof ContentAddonActiveRecord)
             || Yii::$app->user->isGuest
-            || !$object->content->container instanceof Space
             || !$object->content->canView()) {
             return false;
         }

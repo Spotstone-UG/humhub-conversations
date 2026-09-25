@@ -34,15 +34,26 @@ final class ContentEmojiReactionService
         }
     }
 
-    /** @return array<string, array{emoji:string,count:int,mine:bool}> */
+    /**
+     * @return array<string, array{emoji:string,count:int,mine:bool,users:list<string>}>
+     */
     public function summary(ContentActiveRecord|ContentAddonActiveRecord $content, User $user): array
     {
         $summary = [];
-        foreach (ContentEmojiReaction::find()->where($this->contentCondition($content))->all() as $reaction) {
+        $reactions = ContentEmojiReaction::find()
+            ->where($this->contentCondition($content))
+            ->with('user')
+            ->orderBy(['created_at' => SORT_ASC, 'user_id' => SORT_ASC])
+            ->all();
+
+        foreach ($reactions as $reaction) {
             $emoji = $reaction->emoji;
-            $summary[$emoji] ??= ['emoji' => $emoji, 'count' => 0, 'mine' => false];
+            $summary[$emoji] ??= ['emoji' => $emoji, 'count' => 0, 'mine' => false, 'users' => []];
             $summary[$emoji]['count']++;
             $summary[$emoji]['mine'] = $summary[$emoji]['mine'] || (int) $reaction->user_id === (int) $user->id;
+            if ($reaction->user !== null) {
+                $summary[$emoji]['users'][] = $reaction->user->displayName;
+            }
         }
 
         return $summary;
