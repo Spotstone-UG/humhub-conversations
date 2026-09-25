@@ -7,6 +7,7 @@ use humhub\modules\conversations\assets\ConversationAsset;
 /** @var array<int, array{slug:string,name:string,icon:string,emojis:array<int, array{emoji:string,name:string}>}> $categories */
 /** @var string $submitUrl */
 /** @var string|null $returnUrl */
+/** @var string|null $reactionTarget */
 ConversationAsset::register($this);
 ?>
 <div class="modal-dialog modal-dialog-scrollable conversation-reaction-picker-dialog">
@@ -23,7 +24,12 @@ ConversationAsset::register($this);
             <p class="text-body-secondary small" data-conversation-reaction-heading><?= Html::encode($categories[0]['name'] ?? 'Emoji') ?></p>
             <?php foreach ($categories as $index => $category): ?>
                 <div class="conversation-reaction-picker__category" data-conversation-reaction-category-panel="<?= Html::encode($category['slug']) ?>"<?= $index === 0 ? '' : ' hidden' ?>>
-                    <?= Html::beginForm($submitUrl, 'post', ['class' => 'conversation-reaction-picker__grid']) ?>
+                    <?= Html::beginForm($submitUrl, 'post', [
+                        'class' => 'conversation-reaction-picker__grid',
+                        'data-conversation-reaction-submit' => 'true',
+                        'data-conversation-reaction-return-url' => $returnUrl,
+                        'data-conversation-reaction-target' => $reactionTarget,
+                    ]) ?>
                         <?= isset($returnUrl) ? Html::hiddenInput('returnUrl', $returnUrl) : '' ?>
                         <?php foreach ($category['emojis'] as $emoji): ?>
                             <?= Html::submitButton($emoji['emoji'], ['class' => 'conversation-reaction-picker__emoji', 'name' => 'emoji', 'value' => $emoji['emoji'], 'title' => $emoji['name'], 'aria-label' => $emoji['name'], 'data-conversation-reaction-name' => $emoji['name']]) ?>

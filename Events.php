@@ -4,9 +4,7 @@
 namespace humhub\modules\conversations;
 
 use humhub\modules\ui\menu\MenuLink;
-use humhub\modules\content\widgets\WallEntryLinks;
 use humhub\modules\like\widgets\LikeLink;
-use humhub\modules\content\components\ContentActiveRecord;
 use humhub\modules\conversations\widgets\ContentEmojiReactionLink;
 use humhub\modules\conversations\assets\ConversationAsset;
 use humhub\modules\conversations\services\ConversationOverviewService;
@@ -17,25 +15,15 @@ use Yii;
 
 final class Events
 {
-    public static function onWallEntryLinksInit($event): void
+    /** Replaces every native LikeLink with the same accessible emoji reaction bar. */
+    public static function onLikeLinkAfterRun($event): void
     {
-        if (!$event->sender->object instanceof ContentActiveRecord
+        if (!$event->sender instanceof LikeLink
             || !ContentEmojiReactionLink::supports($event->sender->object)) {
             return;
         }
 
-        $event->sender->addWidget(ContentEmojiReactionLink::class, ['object' => $event->sender->object], ['sortOrder' => 30]);
-    }
-
-    /** Replaces the native binary Like control on every supported content item. */
-    public static function onWallEntryLinksRun($event): void
-    {
-        if (!$event->sender->object instanceof ContentActiveRecord
-            || !ContentEmojiReactionLink::supports($event->sender->object)) {
-            return;
-        }
-
-        $event->sender->removeWidget(LikeLink::class);
+        $event->result = ContentEmojiReactionLink::widget(['object' => $event->sender->object]);
     }
 
     public static function onAccountMenuInit($event): void

@@ -579,6 +579,52 @@
             }
         });
 
+        // Save emoji reactions in the background and replace just their local
+        // action row. Stream pages remain in place, including their scroll
+        // position, instead of navigating to the stream's JSON endpoint.
+        document.addEventListener('submit', function (event) {
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement) || !form.matches('[data-conversation-reaction-submit="true"]')) { return; }
+            event.preventDefault();
+            if (form.dataset.submitting === 'true') { return; }
+
+            const formData = new FormData(form);
+            const submitter = event.submitter;
+            if (submitter instanceof HTMLButtonElement && submitter.name) {
+                formData.set(submitter.name, submitter.value);
+            }
+
+            form.dataset.submitting = 'true';
+            window.fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: {'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'},
+            }).then(function (response) {
+                if (!response.ok) { throw new Error('Emoji reaction request failed'); }
+                return response.json();
+            }).then(function (result) {
+                const target = form.dataset.conversationReactionTarget;
+                const current = target ? document.getElementById(target) : null;
+                if (!current || typeof result?.html !== 'string') {
+                    throw new Error('Emoji reaction update was incomplete');
+                }
+
+                const documentFragment = new DOMParser().parseFromString(result.html, 'text/html');
+                const replacement = documentFragment.body.firstElementChild;
+                if (!replacement) { throw new Error('Emoji reaction markup missing'); }
+                current.replaceWith(replacement);
+
+                const modal = form.closest('#globalModal');
+                if (modal && window.jQuery) {
+                    window.jQuery(modal).modal('hide');
+                }
+            }).catch(function () {
+                form.dataset.submitting = 'false';
+                window.alert('Die Reaktion konnte nicht gespeichert werden.');
+            });
+        }, true);
+
         document.addEventListener('mouseup', function () {
             const selection = window.getSelection();
             const text = selection ? selection.toString().trim() : '';

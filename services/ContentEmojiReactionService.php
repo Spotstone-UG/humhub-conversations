@@ -4,6 +4,7 @@
 namespace humhub\modules\conversations\services;
 
 use humhub\components\behaviors\PolymorphicRelation;
+use humhub\modules\content\components\ContentAddonActiveRecord;
 use humhub\modules\content\components\ContentActiveRecord;
 use humhub\modules\conversations\models\ContentEmojiReaction;
 use humhub\modules\conversations\widgets\ContentEmojiReactionLink;
@@ -14,7 +15,7 @@ use yii\web\ForbiddenHttpException;
 /** Stores emoji reactions for every likeable HumHub content type. */
 final class ContentEmojiReactionService
 {
-    public function toggle(ContentActiveRecord $content, User $user, string $emoji): void
+    public function toggle(ContentActiveRecord|ContentAddonActiveRecord $content, User $user, string $emoji): void
     {
         if (!$content->content->canView($user) || !ContentEmojiReactionLink::supports($content)) {
             throw new ForbiddenHttpException();
@@ -34,7 +35,7 @@ final class ContentEmojiReactionService
     }
 
     /** @return array<string, array{emoji:string,count:int,mine:bool}> */
-    public function summary(ContentActiveRecord $content, User $user): array
+    public function summary(ContentActiveRecord|ContentAddonActiveRecord $content, User $user): array
     {
         $summary = [];
         foreach (ContentEmojiReaction::find()->where($this->contentCondition($content))->all() as $reaction) {
@@ -48,13 +49,13 @@ final class ContentEmojiReactionService
     }
 
     /** @return array{content_model:string,content_id:int,user_id:int,emoji:string} */
-    private function condition(ContentActiveRecord $content, User $user, string $emoji): array
+    private function condition(ContentActiveRecord|ContentAddonActiveRecord $content, User $user, string $emoji): array
     {
         return $this->contentCondition($content) + ['user_id' => (int) $user->id, 'emoji' => $emoji];
     }
 
     /** @return array{content_model:string,content_id:int} */
-    private function contentCondition(ContentActiveRecord $content): array
+    private function contentCondition(ContentActiveRecord|ContentAddonActiveRecord $content): array
     {
         return [
             'content_model' => PolymorphicRelation::getObjectModel($content),
