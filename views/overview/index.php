@@ -17,7 +17,7 @@ $mutedGroups = array_filter($groups, static fn(array $group): bool => $group['is
             <span class="text-body-secondary">Alle Chats aus Spaces, die du lesen darfst.</span>
         </div>
         <div class="panel-body">
-            <?= Html::a($archived ? '← Aktive Chats anzeigen' : 'Archivierte Chats anzeigen', ['/conversations/overview/index', 'archived' => $archived ? 0 : 1], ['class' => 'btn btn-default btn-sm']) ?>
+            <?= Html::a($archived ? '← Aktive Chats anzeigen' : 'Archivierte Chats anzeigen', ['/conversations/overview/index', 'archived' => $archived ? 0 : 1], ['class' => $archived ? 'btn btn-default btn-sm' : 'text-muted', 'style' => $archived ? null : 'display: inline-block; font-size: .8rem; margin-bottom: .75rem;']) ?>
             <?php if ($activeGroups === [] && $mutedGroups === []): ?>
                 <p class="text-body-secondary mb-0">Für dich sind noch keine Chats sichtbar.</p>
             <?php endif; ?>

@@ -12,7 +12,7 @@ ConversationAsset::register($this);
         <?= Html::a('Neuer Chat', $contentContainer->createUrl('/conversations/conversation/create'), ['class' => 'btn btn-primary btn-sm']) ?>
     </div>
     <div class="panel-body">
-        <?= Html::a($archived ? '← Aktive Chats anzeigen' : 'Archivierte Chats anzeigen', $contentContainer->createUrl('/conversations/conversation/index', ['archived' => $archived ? 0 : 1]), ['class' => 'btn btn-default btn-sm']) ?>
+        <?= Html::a($archived ? '← Aktive Chats anzeigen' : 'Archivierte Chats anzeigen', $contentContainer->createUrl('/conversations/conversation/index', ['archived' => $archived ? 0 : 1]), ['class' => $archived ? 'btn btn-default btn-sm' : 'text-muted', 'style' => $archived ? null : 'display: inline-block; font-size: .8rem; margin-bottom: .75rem;']) ?>
         <?php if ($conversations === []): ?>
             <p class="text-body-secondary mb-0">Noch keine Chats in diesem Space.</p>
         <?php endif; ?>
