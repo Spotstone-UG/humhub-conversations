@@ -44,7 +44,6 @@ $muted = $group['isMuted'];
                 <div><?= Yii::$app->formatter->asRelativeTime($conversation->last_message_at ?: $conversation->content->created_at) ?></div>
                 <div class="conversation-overview__outcome"><?= $conversation->isClosed && $conversation->outcome !== '' ? Html::encode($conversation->outcome) : '—' ?></div>
                 <div class="conversation-overview__interest-control">
-                    <?= $this->render('../conversation/_archive-control', ['conversation' => $conversation]) ?>
                     <?= Html::beginForm(['/conversations/conversation/toggle-interest', 'conversationId' => $conversation->id, 'cguid' => $space->guid], 'post') ?>
                         <?= Html::submitButton(
                             Html::tag('i', '', ['class' => 'fa ' . ($interested ? 'fa-bell' : 'fa-bell-slash-o'), 'aria-hidden' => 'true']) . Html::tag('span', $interested ? 'Hinweise an' : 'Hinweise aus', ['class' => 'visually-hidden']),
