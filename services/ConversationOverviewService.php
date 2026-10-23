@@ -16,10 +16,11 @@ final class ConversationOverviewService
     /**
      * @return array<int, array{space: Space, conversations: Conversation[], unreadCounts: array<int, int>, isMuted: bool}>
      */
-    public function groupedBySpace(User $user): array
+    public function groupedBySpace(User $user, bool $archived = false): array
     {
         $all = Conversation::find()
             ->readable($user)
+            ->andWhere(['content.archived' => $archived ? 1 : 0])
             ->orderBy(['conversation.last_message_at' => SORT_DESC, 'conversation.id' => SORT_DESC])
             ->all();
         $mutedSpaceIds = $this->mutedSpaceIds($user);

@@ -29,11 +29,12 @@ final class ConversationController extends ContentContainerController
 
     public $validContentContainerClasses = [Space::class];
 
-    public function actionIndex(): string
+    public function actionIndex(bool $archived = false): string
     {
         $allConversations = Conversation::find()
             ->contentContainer($this->contentContainer)
             ->readable()
+            ->andWhere(['content.archived' => $archived ? 1 : 0])
             ->orderBy(['conversation.last_message_at' => SORT_DESC, 'conversation.id' => SORT_DESC])
             ->all();
 
@@ -57,7 +58,34 @@ final class ConversationController extends ContentContainerController
             }
         }
 
-        return $this->render('index', ['conversations' => $conversations, 'contentContainer' => $this->contentContainer]);
+        // An archived parent must not hide an independently active child.
+        foreach ($children as $parentId => $items) {
+            if (!array_filter($topLevel, static fn(Conversation $item): bool => (int) $item->id === $parentId)) {
+                array_push($conversations, ...$items);
+            }
+        }
+
+        return $this->render('index', ['conversations' => $conversations, 'contentContainer' => $this->contentContainer, 'archived' => $archived]);
+    }
+
+    /** Uses HumHub's native archive flag and Space/global administration rights. */
+    public function actionSetArchived(int $conversationId)
+    {
+        $this->forcePostRequest();
+        $conversation = $this->findConversation($conversationId);
+        if (!$conversation->content->canArchive()) {
+            $this->forbidden();
+        }
+        $archived = Yii::$app->request->post('archived');
+        if (!in_array($archived, ['0', '1'], true)) {
+            throw new \yii\web\BadRequestHttpException('Ungültiger Archivstatus.');
+        }
+        $saved = $archived === '1' ? $conversation->content->archive() : $conversation->content->unarchive();
+        if (!$saved) {
+            throw new \yii\web\BadRequestHttpException('Der Archivstatus konnte nicht gespeichert werden.');
+        }
+        Yii::$app->session->setFlash('success', $archived === '1' ? 'Der Chat wurde archiviert.' : 'Der Chat wurde aus dem Archiv wiederhergestellt.');
+        return $this->redirect(['/conversations/overview/index', 'archived' => $archived === '0' ? 1 : 0]);
     }
 
     public function actionCreate()

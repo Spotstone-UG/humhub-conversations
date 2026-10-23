@@ -2,6 +2,16 @@
 (function () {
     'use strict';
 
+    function applyOverviewFilters() {
+        const overview = document.querySelector('.conversation-global-overview');
+        if (!overview) { return; }
+        const filter = overview.querySelector('[data-conversation-filter].is-active')?.dataset.conversationFilter || 'all';
+        const term = overview.querySelector('[data-conversation-overview-search]')?.value.trim().toLocaleLowerCase() || '';
+        overview.querySelectorAll('.conversation-global-overview__space:not(.conversation-global-overview__space--muted) .conversation-overview__row').forEach(function (row) {
+            const statusMatches = filter === 'all' || (filter === 'unread' ? row.dataset.conversationUnread === 'true' : row.dataset.conversationStatus === filter);
+            row.hidden = !statusMatches || (term !== '' && !row.textContent.toLocaleLowerCase().includes(term));
+        });
+    }
     function editor(composer) {
         return composer.querySelector('[contenteditable="true"]') || composer.querySelector('textarea[name="ConversationMessage[message]"]');
     }
@@ -546,9 +556,7 @@
             if (filter) {
                 const current = filter.dataset.conversationFilter;
                 document.querySelectorAll('[data-conversation-filter]').forEach(function (button) { button.classList.toggle('is-active', button === filter); });
-                document.querySelectorAll('.conversation-global-overview__space:not(.conversation-global-overview__space--muted) .conversation-overview__row').forEach(function (row) {
-                    row.hidden = current !== 'all' && (current === 'unread' ? row.dataset.conversationUnread !== 'true' : row.dataset.conversationStatus !== current);
-                });
+                applyOverviewFilters();
                 return;
             }
             if (event.target.closest('[data-conversation-open-muted]')) {
@@ -572,10 +580,7 @@
                 document.querySelectorAll('.conversation-message').forEach(function (message) { message.hidden = term !== '' && !message.textContent.toLocaleLowerCase().includes(term); });
             }
             if (search instanceof HTMLInputElement && search.matches('[data-conversation-overview-search]')) {
-                const term = search.value.trim().toLocaleLowerCase();
-                document.querySelectorAll('.conversation-global-overview__space:not(.conversation-global-overview__space--muted) .conversation-overview__row').forEach(function (row) {
-                    row.hidden = term !== '' && !row.textContent.toLocaleLowerCase().includes(term);
-                });
+                applyOverviewFilters();
             }
         });
 

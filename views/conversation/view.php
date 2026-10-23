@@ -53,6 +53,8 @@ $avatar = static function ($user): string {
             <?php if ($conversation->summary): ?><p><?= Html::encode($conversation->summary) ?></p><?php endif; ?>
         </div>
         <div class="conversation-view__actions">
+            <?php if ($conversation->content->archived): ?><span class="conversation-status">Archiviert</span><?php endif; ?>
+            <?= $this->render('_archive-control', ['conversation' => $conversation]) ?>
             <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/toggle-interest', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-interest-toggle']) ?>
                 <?= Html::submitButton(
                     Html::tag('i', '', ['class' => 'fa ' . ($isInterested ? 'fa-bell' : 'fa-bell-slash-o'), 'aria-hidden' => 'true'])

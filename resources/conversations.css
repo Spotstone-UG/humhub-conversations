@@ -235,3 +235,7 @@ body.conversation-page .conversation-new-message-notice { bottom: calc(var(--con
     .conversation-global-overview__space-header { align-items: flex-start; flex-direction: column; gap: 0; }
     .conversation-overview__filters label { flex-basis: 100%; margin-left: 0; }
 }
+
+.conversation-archive-control { margin-top: .35rem; }
+/* Explicit grid display otherwise overrides the browser's hidden attribute. */
+.conversation-overview__row[hidden] { display: none !important; }

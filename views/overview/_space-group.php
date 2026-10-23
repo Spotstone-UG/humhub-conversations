@@ -12,7 +12,7 @@ $muted = $group['isMuted'];
     <header class="conversation-global-overview__space-header">
         <h2>
             <i class="fa fa-users" aria-hidden="true"></i>
-            <?= Html::a(Html::encode($space->displayName), $space->url) ?>
+            <?= Html::a(Html::encode($space->displayName), $space->getUrl()) ?>
         </h2>
         <?= Html::beginForm(['/conversations/overview/toggle-mute', 'spaceId' => $space->id], 'post', ['class' => 'conversation-global-overview__mute-form']) ?>
             <?= Html::submitButton($muted ? 'Stummschaltung aufheben' : 'Space stummschalten', ['class' => 'btn btn-default btn-sm']) ?>
@@ -35,6 +35,7 @@ $muted = $group['isMuted'];
                         <small class="conversation-overview__subcount"><?= $conversation->getSubconversations()->count() ?> Unterthemen</small>
                     <?php endif; ?>
                     <?php if ($conversation->summary): ?><small><?= Html::encode($conversation->summary) ?></small><?php endif; ?>
+                    <?= $this->render('../conversation/_archive-control', ['conversation' => $conversation]) ?>
                 </div>
                 <div>
                     <span class="conversation-status <?= $conversation->isClosed ? 'conversation-status--closed' : '' ?>"><?= $conversation->isClosed ? 'Beendet' : 'Offen' ?></span>
@@ -43,6 +44,7 @@ $muted = $group['isMuted'];
                 <div><?= Yii::$app->formatter->asRelativeTime($conversation->last_message_at ?: $conversation->content->created_at) ?></div>
                 <div class="conversation-overview__outcome"><?= $conversation->isClosed && $conversation->outcome !== '' ? Html::encode($conversation->outcome) : '—' ?></div>
                 <div class="conversation-overview__interest-control">
+                    <?= $this->render('../conversation/_archive-control', ['conversation' => $conversation]) ?>
                     <?= Html::beginForm(['/conversations/conversation/toggle-interest', 'conversationId' => $conversation->id, 'cguid' => $space->guid], 'post') ?>
                         <?= Html::submitButton(
                             Html::tag('i', '', ['class' => 'fa ' . ($interested ? 'fa-bell' : 'fa-bell-slash-o'), 'aria-hidden' => 'true']) . Html::tag('span', $interested ? 'Hinweise an' : 'Hinweise aus', ['class' => 'visually-hidden']),

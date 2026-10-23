@@ -111,3 +111,7 @@ HUMHUB_ROOT=/path/to/humhub php tests/compatibility.php
 Run PHP syntax checks for every PHP file and the acceptance plan above before a production release. The module uses AGPL-3.0-only source headers.
 
 GitHub Actions also runs PHP linting and the repository-level invariants for PHP 8.2 and 8.3 on every pull request and every push to `main`.
+
+## Archivierte Chats (1.18.0)
+
+Die Chatübersichten zeigen standardmäßig nur aktive Chats. Über „Archivierte Chats anzeigen“ öffnet sich das Archiv; Leserechte gelten dort unverändert. Archivierte Chats zählen nicht zum Ungelesen-Zähler. Globale Inhaltsadministratoren und berechtigte Space-Administratoren können Chats über „Archivieren“ und „Wiederherstellen“ verwalten. Es gelten HumHubs `Content::canArchive()`-Rechte und der native Archivstatus; eine Datenbankmigration ist nicht erforderlich. Unterthemen werden unabhängig archiviert. Archivieren verändert weder den Gesprächsabschluss noch das Ergebnis und löscht keine Nachrichten.

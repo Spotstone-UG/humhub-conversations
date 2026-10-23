@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use humhub\helpers\Html;
+use yii\helpers\Url;
 use humhub\modules\conversations\assets\ConversationAsset;
 
 /** @var array<int, array{space: \humhub\modules\space\models\Space, conversations: \humhub\modules\conversations\models\Conversation[], unreadCounts: array<int, int>, isMuted: bool}> $groups */
@@ -9,13 +10,14 @@ ConversationAsset::register($this);
 $activeGroups = array_filter($groups, static fn(array $group): bool => !$group['isMuted']);
 $mutedGroups = array_filter($groups, static fn(array $group): bool => $group['isMuted']);
 ?>
-<div class="container conversation-global-overview" data-conversation-overview-live-url="<?= Html::encode(\yii\helpers\Url::to(['/conversations/overview/live-state'])) ?>" data-conversation-overview-unread="<?= (int) $unreadTotal ?>" data-conversation-overview-revision="<?= Html::encode($overviewRevision) ?>">
+<div class="container conversation-global-overview" data-conversation-overview-live-url="<?= Html::encode(Url::to(['/conversations/overview/live-state', 'archived' => (int) $archived])) ?>" data-conversation-overview-unread="<?= (int) $unreadTotal ?>" data-conversation-overview-revision="<?= Html::encode($overviewRevision) ?>">
     <div class="panel panel-default conversation-index">
         <div class="panel-heading">
-            <strong>Chats</strong>
+            <strong><?= $archived ? 'Archivierte Chats' : 'Chats' ?></strong>
             <span class="text-body-secondary">Alle Chats aus Spaces, die du lesen darfst.</span>
         </div>
         <div class="panel-body">
+            <?= Html::a($archived ? '← Aktive Chats anzeigen' : 'Archivierte Chats anzeigen', ['/conversations/overview/index', 'archived' => $archived ? 0 : 1], ['class' => 'btn btn-default btn-sm']) ?>
             <?php if ($activeGroups === [] && $mutedGroups === []): ?>
                 <p class="text-body-secondary mb-0">Für dich sind noch keine Chats sichtbar.</p>
             <?php endif; ?>

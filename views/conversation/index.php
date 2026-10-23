@@ -8,10 +8,11 @@ ConversationAsset::register($this);
 ?>
 <div class="panel panel-default conversation-index">
     <div class="panel-heading d-flex justify-content-between align-items-center">
-        <strong>Chats</strong>
+        <strong><?= $archived ? 'Archivierte Chats' : 'Chats' ?></strong>
         <?= Html::a('Neuer Chat', $contentContainer->createUrl('/conversations/conversation/create'), ['class' => 'btn btn-primary btn-sm']) ?>
     </div>
     <div class="panel-body">
+        <?= Html::a($archived ? '← Aktive Chats anzeigen' : 'Archivierte Chats anzeigen', $contentContainer->createUrl('/conversations/conversation/index', ['archived' => $archived ? 0 : 1]), ['class' => 'btn btn-default btn-sm']) ?>
         <?php if ($conversations === []): ?>
             <p class="text-body-secondary mb-0">Noch keine Chats in diesem Space.</p>
         <?php endif; ?>
@@ -31,6 +32,7 @@ ConversationAsset::register($this);
                                 <small class="conversation-overview__subcount"><?= $conversation->getSubconversations()->count() ?> Unterthemen</small>
                             <?php endif; ?>
                             <?php if ($conversation->summary): ?><small><?= Html::encode($conversation->summary) ?></small><?php endif; ?>
+                            <?= $this->render('_archive-control', ['conversation' => $conversation]) ?>
                         </div>
                         <div><span class="conversation-status <?= $conversation->isClosed ? 'conversation-status--closed' : '' ?>"><?= $conversation->isClosed ? 'Beendet' : 'Offen' ?></span></div>
                         <div><?= Yii::$app->formatter->asRelativeTime($conversation->last_message_at ?: $conversation->content->created_at) ?></div>

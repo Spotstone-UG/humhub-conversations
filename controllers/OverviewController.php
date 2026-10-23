@@ -21,13 +21,14 @@ final class OverviewController extends Controller
         ];
     }
 
-    public function actionIndex(): string
+    public function actionIndex(bool $archived = false): string
     {
         $service = new ConversationOverviewService();
-        $groups = $service->groupedBySpace(Yii::$app->user->identity);
+        $groups = $service->groupedBySpace(Yii::$app->user->identity, $archived);
 
         return $this->render('index', [
             'groups' => $groups,
+            'archived' => $archived,
             'unreadTotal' => $service->unreadTotal(Yii::$app->user->identity),
             'overviewRevision' => $this->overviewRevision($groups),
             'currentUser' => Yii::$app->user->identity,
@@ -35,10 +36,10 @@ final class OverviewController extends Controller
     }
 
     /** Background state for the overview; no push server is required for this first live layer. */
-    public function actionLiveState()
+    public function actionLiveState(bool $archived = false)
     {
         $service = new ConversationOverviewService();
-        $groups = $service->groupedBySpace(Yii::$app->user->identity);
+        $groups = $service->groupedBySpace(Yii::$app->user->identity, $archived);
         return $this->asJson([
             'unreadTotal' => $service->unreadTotal(Yii::$app->user->identity),
             'revision' => $this->overviewRevision($groups),
