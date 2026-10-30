@@ -56,7 +56,9 @@ final class ContentReactionController extends ContentAddonController
 
     private function content(): ContentActiveRecord|ContentAddonActiveRecord
     {
-        $content = $this->contentAddon ?? $this->parentContent;
+        // HumHub puts a requested comment in parentContentAddon; parentContent
+        // is its source post. contentAddon is reserved for loadContentAddon().
+        $content = $this->parentContentAddon ?? $this->parentContent;
         if (!($content instanceof ContentActiveRecord || $content instanceof ContentAddonActiveRecord)
             || !ContentEmojiReactionLink::supports($content)) {
             throw new ForbiddenHttpException();
