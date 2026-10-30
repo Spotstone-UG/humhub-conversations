@@ -179,7 +179,7 @@ $avatar = static function ($user): string {
                 <?php $lastDate = $messageDate; ?>
             <?php endif; ?>
             <?php if ($firstUnreadMessageId !== null && $message->id === $firstUnreadMessageId && $unreadCount > 0): ?>
-                <div class="conversation-unread-divider" id="first-unread-message">── <?= $unreadCount ?> neue Nachrichten ──</div>
+                <div class="conversation-unread-divider" id="first-unread-message" role="separator" aria-label="Gelesen bis hier">──── Gelesen bis hier ────</div>
             <?php endif; ?>
             <?php $isOwn = (int) $message->content->created_by === (int) $currentUser->id; ?>
             <?php $mentionsCurrentUser = Mentioning::find()->where(['object_model' => $message::class, 'object_id' => $message->id, 'user_id' => $currentUser->id])->exists(); ?>
