@@ -419,6 +419,49 @@
         open();
     }
 
+    function initializeReadingPosition() {
+        const view = document.querySelector('[data-conversation-live-url]');
+        document.body.classList.toggle('conversation-page', Boolean(view));
+        if (!view || view.dataset.readingPositionInitialized) { return; }
+        view.dataset.readingPositionInitialized = 'true';
+        // Explicit links to individual messages keep their own anchor target.
+        if (window.location.hash) { return; }
+        const unread = view.querySelector('#first-unread-message');
+        const resume = unread ? view.querySelector('[data-conversation-resume]') || unread : null;
+        const latest = view.querySelector('.conversation-view__messages > .conversation-message:last-of-type');
+        if (!latest) { return; }
+        let active = true;
+        const stop = function () { active = false; };
+        ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(function (name) {
+            view.addEventListener(name, stop, {once: true, passive: true});
+        });
+        const position = function () {
+            if (!active || !view.isConnected || window.location.hash) { return; }
+            const feed = view.querySelector('.conversation-view__feed');
+            if (resume) {
+                scrollIntoReadableArea(resume, 'start', 'auto');
+            } else if (feed) {
+                feed.scrollTo({top: feed.scrollHeight, behavior: 'instant'});
+            } else {
+                scrollIntoReadableArea(latest, 'end', 'auto');
+            }
+        };
+        const schedule = function () { window.requestAnimationFrame(function () { window.requestAnimationFrame(position); }); };
+        schedule();
+        // Editors, fonts and images can change heights after the initial render.
+        window.addEventListener('load', schedule, {once: true});
+        if (document.fonts?.ready) { document.fonts.ready.then(schedule); }
+        view.querySelectorAll('img').forEach(function (image) { image.addEventListener('load', schedule, {once: true}); });
+        if (window.ResizeObserver) {
+            const observer = new ResizeObserver(schedule);
+            const messages = view.querySelector('.conversation-view__messages');
+            if (messages) { observer.observe(messages); }
+            const composer = view.querySelector('.conversation-composer');
+            if (composer) { observer.observe(composer); }
+            window.setTimeout(function () { observer.disconnect(); }, 2500);
+        }
+    }
+
     function initializeConversationUi() {
         const conversationView = document.querySelector('[data-conversation-live-url]');
         // HumHub can replace just the content area when navigating back to the
@@ -437,15 +480,7 @@
             const composer = document.querySelector('.conversation-composer');
             if (composer && window.ResizeObserver) { new ResizeObserver(syncViewport).observe(composer); }
         }
-        const latestMessage = document.querySelector('.conversation-view__messages > .conversation-message:last-of-type');
-        if (!window.location.hash && latestMessage) {
-            window.requestAnimationFrame(function () {
-                // Opening a chat is the reading-now case: show the newest
-                // message directly above the sticky composer. The unread
-                // divider remains available through the navigation control.
-                scrollIntoReadableArea(latestMessage, 'end', 'auto');
-            });
-        }
+        initializeReadingPosition();
         const highlightHashTarget = function () {
             if (!window.location.hash.startsWith('#conversation-message-')) { return; }
             // Browsers resolve anchors before the flex-based chat surface has
@@ -739,5 +774,6 @@
         }
     }
 
+    if (window.jQuery) { window.jQuery(document).on('humhub:ready', initializeReadingPosition); }
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initializeConversationUi, {once: true}); } else { initializeConversationUi(); }
 }());
