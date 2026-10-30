@@ -2,6 +2,59 @@
 (function () {
     'use strict';
 
+    // Touch taps inspect reactions first; only the explicit action submits.
+    let reactionPointerType = '';
+    document.addEventListener('pointerdown', function (event) {
+        reactionPointerType = event.pointerType;
+    }, true);
+    document.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-reaction-users]');
+        if (!button || !button.form || !(reactionPointerType === 'touch' || reactionPointerType === 'pen' || window.matchMedia('(hover: none)').matches)) { return; }
+        if (typeof HTMLDialogElement === 'undefined') { return; }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (document.querySelector('.conversation-reaction-details')) { return; }
+        const dialog = document.createElement('dialog');
+        dialog.className = 'conversation-reaction-details';
+        dialog.setAttribute('aria-labelledby', 'conversation-reaction-details-title');
+        const heading = document.createElement('h2');
+        heading.id = 'conversation-reaction-details-title';
+        heading.textContent = button.textContent.trim() + ' – Reagiert von';
+        const list = document.createElement('ul');
+        JSON.parse(button.dataset.reactionUsers).forEach(function (name) {
+            const item = document.createElement('li');
+            item.textContent = name;
+            list.appendChild(item);
+        });
+        if (!list.children.length) {
+            const item = document.createElement('li');
+            item.textContent = 'Keine Namen verfügbar';
+            list.appendChild(item);
+        }
+        const action = document.createElement('button');
+        action.type = 'button';
+        action.className = 'btn btn-primary';
+        action.textContent = button.dataset.reactionAction;
+        action.addEventListener('click', function () {
+            dialog.close();
+            button.form.requestSubmit(button);
+        });
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'btn btn-default';
+        close.textContent = 'Schließen';
+        close.addEventListener('click', function () { dialog.close(); });
+        dialog.addEventListener('click', function (click) {
+            if (click.target !== dialog) { return; }
+            const bounds = dialog.getBoundingClientRect();
+            if (click.clientX < bounds.left || click.clientX > bounds.right || click.clientY < bounds.top || click.clientY > bounds.bottom) { dialog.close(); }
+        });
+        dialog.addEventListener('close', function () { dialog.remove(); button.focus(); }, {once: true});
+        dialog.append(heading, list, action, close);
+        document.body.appendChild(dialog);
+        dialog.showModal();
+    }, true);
+
     function applyOverviewFilters() {
         const overview = document.querySelector('.conversation-global-overview');
         if (!overview) { return; }

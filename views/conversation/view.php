@@ -257,11 +257,17 @@ $avatar = static function ($user): string {
                 <?php if (isset($reactionSummaries[$message->id])): ?>
                     <div class="conversation-message__reactions" aria-label="Reaktionen">
                         <?php foreach ($reactionSummaries[$message->id] as $reaction): ?>
+                            <?php $reactionHint = $reaction['mine'] ? 'Eigene Reaktion entfernen' : 'Mit dieser Reaktion antworten'; ?>
+                            <?php $reactionTitle = $reactionHint . ($reaction['users'] !== [] ? "\n\nReagiert von:\n• " . implode("\n• ", $reaction['users']) : ''); ?>
                             <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/react', ['conversationId' => $conversation->id, 'messageId' => $message->id]), 'post', ['class' => 'conversation-message__reaction-form']) ?>
                                 <?= Html::hiddenInput('emoji', $reaction['emoji']) ?>
                                 <?= Html::submitButton($reaction['emoji'] . ' ' . $reaction['count'], [
                                     'class' => 'conversation-message__reaction' . ($reaction['mine'] ? ' conversation-message__reaction--mine' : ''),
-                                    'title' => $reaction['mine'] ? 'Eigene Reaktion entfernen' : 'Mit dieser Reaktion antworten',
+                                    'title' => $reactionTitle,
+                                    'aria-label' => $reaction['emoji'] . ': ' . str_replace("\n", ' ', $reactionTitle),
+                                    'aria-pressed' => $reaction['mine'] ? 'true' : 'false',
+                                    'data-reaction-users' => \yii\helpers\Json::encode($reaction['users']),
+                                    'data-reaction-action' => $reaction['mine'] ? 'Eigene Reaktion entfernen' : 'Auch so reagieren',
                                 ]) ?>
                             <?= Html::endForm() ?>
                         <?php endforeach; ?>

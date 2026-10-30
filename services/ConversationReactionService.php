@@ -43,7 +43,7 @@ final class ConversationReactionService
 
     /**
      * @param ConversationMessage[] $messages
-     * @return array<int, array<string, array{emoji:string,count:int,mine:bool}>>
+     * @return array<int, array<string, array{emoji:string,count:int,mine:bool,users:list<string>}>>
      */
     public function summaries(array $messages, User $user): array
     {
@@ -53,12 +53,15 @@ final class ConversationReactionService
         }
 
         $summaries = [];
-        foreach (ConversationReaction::find()->where(['message_id' => $messageIds])->all() as $reaction) {
+        foreach (ConversationReaction::find()->where(['message_id' => $messageIds])->with('user')->all() as $reaction) {
             $messageId = (int) $reaction->message_id;
             $emoji = $reaction->emoji;
-            $summaries[$messageId][$emoji] ??= ['emoji' => $emoji, 'count' => 0, 'mine' => false];
+            $summaries[$messageId][$emoji] ??= ['emoji' => $emoji, 'count' => 0, 'mine' => false, 'users' => []];
             $summaries[$messageId][$emoji]['count']++;
             $summaries[$messageId][$emoji]['mine'] = $summaries[$messageId][$emoji]['mine'] || (int) $reaction->user_id === (int) $user->id;
+            if ($reaction->user !== null) {
+                $summaries[$messageId][$emoji]['users'][] = $reaction->user->displayName;
+            }
         }
 
         return $summaries;

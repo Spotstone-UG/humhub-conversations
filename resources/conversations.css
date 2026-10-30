@@ -106,6 +106,11 @@
 .conversation-message__reaction-form { margin: 0; }
 .conversation-message__reaction { background: var(--bs-body-bg, #fff); border: 1px solid var(--bs-border-color, #e5e7eb); border-radius: 1rem; box-shadow: 0 1px 2px rgb(0 0 0 / 10%); font-size: .76rem; padding: .04rem .32rem; }
 .conversation-message__reaction--mine { background: #e7f1ff; border-color: #86b7fe; }
+.conversation-reaction-details { background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #222); border: 0; border-radius: 1rem; box-shadow: 0 8px 40px rgb(0 0 0 / 25%); max-width: min(28rem, calc(100vw - 2rem)); max-height: 80vh; padding: 1.25rem; }
+.conversation-reaction-details::backdrop { background: rgb(0 0 0 / 40%); }
+.conversation-reaction-details h2 { font-size: 1.1rem; margin: 0 0 1rem; }
+.conversation-reaction-details ul { max-height: 45vh; overflow-y: auto; padding-left: 1.4rem; }
+.conversation-reaction-details .btn { margin: .25rem .35rem .25rem 0; min-height: 44px; }
 .conversation-reaction-picker-dialog { max-width: 35rem; }
 .conversation-reaction-picker .modal-body { padding: 0 1rem 1rem; }
 .conversation-reaction-picker__tabs { border-bottom: 1px solid var(--bs-border-color, #e5e7eb); display: flex; gap: .15rem; margin: 0 -1rem .85rem; overflow-x: auto; padding: .35rem .65rem 0; }
