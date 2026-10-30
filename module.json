@@ -2,9 +2,10 @@
   "id": "conversations",
   "name": "Chats",
   "description": "Kompakte, chatartige Diskussionen für HumHub-Spaces.",
-    "version": "1.19.3",
+    "version": "1.19.4",
   "humhub": {
-    "minVersion": "1.18.5"
+    "minVersion": "1.18.5",
+    "maxVersion": "1.19.*"
   },
   "keywords": [
     "conversation",

@@ -18,8 +18,10 @@ final class ConversationOverviewService
      */
     public function groupedBySpace(User $user, bool $archived = false): array
     {
-        $all = Conversation::find()
-            ->readable($user)
+        $query = class_exists(\humhub\models\RecordMap::class)
+            ? new \humhub\modules\content\components\ActiveQueryContent(Conversation::class, $user)
+            : Conversation::find();
+        $all = (class_exists(\humhub\models\RecordMap::class) ? $query->readable() : $query->readable($user))
             ->andWhere(['content.archived' => $archived ? 1 : 0])
             ->orderBy(['conversation.last_message_at' => SORT_DESC, 'conversation.id' => SORT_DESC])
             ->all();

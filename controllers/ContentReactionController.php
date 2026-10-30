@@ -3,7 +3,11 @@
 
 namespace humhub\modules\conversations\controllers;
 
-use humhub\modules\content\components\ContentAddonController;
+use humhub\components\Controller;
+use humhub\components\access\ControllerAccess;
+use humhub\components\behaviors\PolymorphicRelation;
+use humhub\helpers\DataTypeHelper;
+use yii\web\NotFoundHttpException;
 use humhub\modules\content\components\ContentAddonActiveRecord;
 use humhub\modules\content\components\ContentActiveRecord;
 use humhub\modules\conversations\services\ContentEmojiReactionService;
@@ -15,10 +19,46 @@ use yii\web\BadRequestHttpException;
 use yii\web\ForbiddenHttpException;
 
 /** Emoji reactions for every likeable ContentActiveRecord in a Space. */
-final class ContentReactionController extends ContentAddonController
+final class ContentReactionController extends Controller
 {
-    /** ContentAddonController performs the content-specific read check itself. */
     protected $access = null;
+    private ContentActiveRecord|ContentAddonActiveRecord|null $reactionContent = null;
+    public string $contentModel = '';
+    public int $contentId = 0;
+
+    protected function getAccessRules()
+    {
+        return [[ControllerAccess::RULE_LOGGED_IN_ONLY]];
+    }
+
+    public function beforeAction($action)
+    {
+        if (!parent::beforeAction($action)) {
+            return false;
+        }
+        $request = Yii::$app->request;
+        $model = $request->get('contentModel', $request->post('contentModel'));
+        $id = $request->get('contentId', $request->post('contentId'));
+        if (!is_string($model) || !is_scalar($id) || !ctype_digit((string) $id) || (int) $id < 1) {
+            throw new BadRequestHttpException();
+        }
+        // Validate the class before calling any user-selected model method.
+        $class = DataTypeHelper::matchClassType($model, [ContentActiveRecord::class, ContentAddonActiveRecord::class]);
+        if ($class === null) {
+            throw new BadRequestHttpException();
+        }
+        $target = $class::findOne(['id' => (int) $id]);
+        if ($target === null) {
+            throw new NotFoundHttpException();
+        }
+        if (!ContentEmojiReactionLink::supports($target)) {
+            throw new ForbiddenHttpException();
+        }
+        $this->reactionContent = $target;
+        $this->contentModel = PolymorphicRelation::getObjectModel($target);
+        $this->contentId = (int) $target->getPrimaryKey();
+        return true;
+    }
 
     public function actionPicker(): string
     {
@@ -56,9 +96,7 @@ final class ContentReactionController extends ContentAddonController
 
     private function content(): ContentActiveRecord|ContentAddonActiveRecord
     {
-        // HumHub puts a requested comment in parentContentAddon; parentContent
-        // is its source post. contentAddon is reserved for loadContentAddon().
-        $content = $this->parentContentAddon ?? $this->parentContent;
+        $content = $this->reactionContent;
         if (!($content instanceof ContentActiveRecord || $content instanceof ContentAddonActiveRecord)
             || !ContentEmojiReactionLink::supports($content)) {
             throw new ForbiddenHttpException();

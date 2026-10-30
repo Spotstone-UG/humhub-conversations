@@ -28,7 +28,12 @@ final class ContentEmojiReactionLink extends Widget
         }
 
         $likeModule = Yii::$app->getModule('like');
-        return $likeModule instanceof LikeModule && $likeModule->canLike($object);
+        if (!$likeModule instanceof LikeModule) {
+            return false;
+        }
+        return class_exists(\humhub\modules\like\services\LikeService::class)
+            ? (new \humhub\modules\like\services\LikeService($object))->canLike()
+            : $likeModule->canLike($object);
     }
 
     public function run(): string
