@@ -39,6 +39,10 @@ $mutedGroups = array_filter($groups, static fn(array $group): bool => $group['is
                 </div>
             <?php endif; ?>
 
+            <div class="conversation-overview conversation-overview--unified" role="table" aria-label="Chats">
+                <div class="conversation-overview__head" role="row">
+                    <span role="columnheader">Chat</span><span role="columnheader">Status</span><span role="columnheader">Letzte Aktivität</span><span role="columnheader">Ergebnis</span><span role="columnheader" class="conversation-overview__interest-heading">Hinweise</span>
+                </div>
             <?php foreach ($activeGroups as $group): ?>
                 <?= $this->render('_space-group', ['group' => $group, 'currentUser' => $currentUser]) ?>
             <?php endforeach; ?>
@@ -52,6 +56,7 @@ $mutedGroups = array_filter($groups, static fn(array $group): bool => $group['is
                     <?php endforeach; ?>
                 </details>
             <?php endif; ?>
+            </div>
         </div>
     </div>
 </div>
