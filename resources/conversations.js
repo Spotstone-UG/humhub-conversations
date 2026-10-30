@@ -589,7 +589,9 @@
                 if (heading) { heading.textContent = reactionTab.getAttribute('aria-label') || ''; }
                 return;
             }
-            const reply = event.target.closest('[data-conversation-reply-id]');
+            // Message articles also carry reply metadata for quoting; only the
+            // explicit reply link should turn a click into a reply action.
+            const reply = event.target.closest('.conversation-message__reply-trigger[data-conversation-reply-id]');
             if (reply) {
                 event.preventDefault();
                 const composer = document.querySelector('.conversation-composer');
