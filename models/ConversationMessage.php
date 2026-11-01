@@ -4,7 +4,8 @@
 namespace humhub\modules\conversations\models;
 
 use humhub\modules\content\components\ContentActiveRecord;
-use humhub\modules\content\widgets\richtext\RichText;
+use humhub\modules\conversations\widgets\ConversationRichText;
+use humhub\modules\conversations\services\ConversationMentionService;
 use humhub\modules\conversations\permissions\CreateConversation;
 use Yii;
 use yii\db\ActiveQuery;
@@ -30,6 +31,7 @@ final class ConversationMessage extends ContentActiveRecord
             [['conversation_id', 'reply_to_message_id'], 'integer', 'min' => 1],
             [['message'], 'required'],
             [['message'], 'string', 'max' => 65535],
+            ['message', 'validateMentions'],
             [['deleted_at'], 'safe'],
         ];
     }
@@ -38,14 +40,23 @@ final class ConversationMessage extends ContentActiveRecord
     {
         parent::afterSave($insert, $changedAttributes);
 
-        RichText::postProcess($this->message, $this, 'message');
+        $processed = ConversationRichText::postProcess($this->message, $this, 'message');
+        $firstMentionIds = array_map(static fn($user): int => (int) $user->id, $processed['mention'] ?? []);
 
         if ($insert) {
             Conversation::updateAll(['last_message_at' => $this->content->created_at], ['id' => $this->conversation_id]);
             if (!Yii::$app->user->isGuest) {
-                (new \humhub\modules\conversations\services\ConversationNotifier())->notifyInterested($this, Yii::$app->user->identity);
+                (new \humhub\modules\conversations\services\ConversationNotifier())->notifyInterested($this, Yii::$app->user->identity, $firstMentionIds);
             }
+        } elseif (!Yii::$app->user->isGuest && (array_key_exists('message', $changedAttributes) || array_key_exists('deleted_at', $changedAttributes))) {
+            (new \humhub\modules\conversations\services\ConversationNotifier())->notifyInterested(
+                $this, Yii::$app->user->identity, $firstMentionIds, $this->deleted_at === null ? 'edited' : 'deleted');
         }
+    }
+
+    public function validateMentions(): void
+    {
+        (new ConversationMentionService())->validate($this);
     }
 
     public function getConversation(): ActiveQuery
@@ -87,7 +98,8 @@ final class ConversationMessage extends ContentActiveRecord
 
     public function getUrl(): string
     {
-        return Url::to(['/conversations/conversation/view', 'id' => $this->conversation_id, 'contentContainer' => $this->content->container]);
+        return Url::to(['/conversations/conversation/view', 'id' => $this->conversation_id, 'contentContainer' => $this->content->container])
+            . '#conversation-message-' . $this->id;
     }
 
     public function getIsDeleted(): bool

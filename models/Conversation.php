@@ -104,6 +104,10 @@ final class Conversation extends ContentActiveRecord
     public function afterSave($insert, $changedAttributes): void
     {
         parent::afterSave($insert, $changedAttributes);
+        if (!$insert && !Yii::$app->user->isGuest
+            && array_intersect(['title', 'summary', 'outcome', 'closed_at'], array_keys($changedAttributes))) {
+            (new \humhub\modules\conversations\services\ConversationNotifier())->notifyChanged($this, Yii::$app->user->identity);
+        }
         if (!$insert || Yii::$app->user->isGuest) {
             return;
         }

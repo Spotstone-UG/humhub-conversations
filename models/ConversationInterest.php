@@ -7,7 +7,7 @@ use humhub\components\ActiveRecord;
 use humhub\modules\user\models\User;
 use yii\db\ActiveQuery;
 
-/** A deliberate opt-in for ongoing notices from one chat. */
+/** Ongoing notices from one chat, enabled deliberately or by its first @ mention. */
 final class ConversationInterest extends ActiveRecord
 {
     public static function tableName(): string

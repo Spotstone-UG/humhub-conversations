@@ -210,9 +210,9 @@ foreach (['reply_to_message_id', 'Antworten', 'Auswahl zitieren', 'appendMarkdow
     }
 }
 
-foreach (['conversation-message-editor-', 'data-conversation-editor-id', '/user/mentioning'] as $requiredToken) {
+foreach (['conversation-message-editor-', 'data-conversation-editor-id', '/conversations/conversation/mentioning'] as $requiredToken) {
     if (!str_contains($conversationView, $requiredToken)) {
-        fwrite(STDERR, "Conversation composers must use individual editor IDs and global mentioning: $requiredToken\n");
+        fwrite(STDERR, "Conversation composers must use individual editor IDs and scoped mentioning: $requiredToken\n");
         exit(1);
     }
 }

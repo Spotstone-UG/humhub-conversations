@@ -25,8 +25,8 @@ $sendWithCtrlEnter = ConversationUserSetting::sendWithCtrlEnter($currentUser);
 $reactionSummaries = (new ConversationReactionService())->summaries($messages, $currentUser);
 $realtimeConnection = (new ConversationRealtimeService())->socketConnection($conversation, $currentUser);
 $interestTooltip = $isInterested
-    ? 'Dieser Chat interessiert dich. Klicken, um laufende Hinweise auszuschalten.'
-    : 'Dieser Chat interessiert dich nicht. Klicken, um laufende Hinweise einzuschalten.';
+    ? 'Du erhältst laufende Chat-Hinweise. Klicken, um sie auszuschalten.'
+    : 'Chat-Hinweise sind ausgeschaltet. Klicken, um sie einzuschalten.';
 $avatar = static function ($user): string {
     // The core widget owns status visibility and privacy. When HumHub's
     // online-status provider is absent or disabled, it renders a normal avatar.
@@ -307,7 +307,7 @@ $avatar = static function ($user): string {
                 // Global mention search also finds eligible people who have not
                 // chosen to follow this particular chat. HumHub verifies access
                 // again before it delivers the native mention notification.
-                'mentioningUrl' => '/user/mentioning',
+                'mentioningUrl' => $contentContainer->createUrl('/conversations/conversation/mentioning', ['conversationId' => $conversation->id]),
             ]) ?>
             <details class="conversation-composer__markdown-help"><summary>Formatierung</summary><span><code>**fett**</code> · <code>*kursiv*</code> · <code>&gt; Zitat</code> · <code>- Liste</code> · <code>1. Liste</code></span></details>
             <div class="conversation-composer__controls">

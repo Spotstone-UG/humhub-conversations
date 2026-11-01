@@ -33,6 +33,31 @@ It deliberately has no AI, automatic summaries or content screening. AI support 
 
 ## Architecture
 
+### @-Erwähnungen ab 1.20
+
+Die Namenssuche im Nachrichteneditor und beim Bearbeiten ist standardmäßig auf
+aktive, sichtbare Space-Mitglieder begrenzt. Ist der Space als Kreis im optionalen
+Modul `sociocratic-governance` registriert (`sg_circle.space_id`), können auch
+Personen aus der übrigen Community erwähnt werden. Persönliche Erwähnungsrechte,
+Blockierungen und Profil-Sichtbarkeit bleiben wirksam. Dieselbe Begrenzung wird
+beim Speichern geprüft; eingefügte Erwähnungslinks umgehen sie nicht.
+
+Bei der ersten Erwähnung einer Person **pro Chat** erhält sie HumHubs native
+„Du wurdest erwähnt“-Benachrichtigung und folgt dem gesamten Chat. Spätere
+Nachrichten, Bearbeitungen, Löschungen sowie Änderungen an Thema, Beschreibung,
+Ergebnis oder Abschlussstatus erzeugen Chat-Hinweise. Wiederholte Erwähnungen und
+Bearbeitungen senden keine erneute Erstbenachrichtigung. Die Glocke erlaubt es,
+Hinweise wieder auszuschalten; spätere Erwähnungen schalten sie nicht wieder ein.
+
+Erwähnen vergibt keine Mitgliedschaft oder Leserechte: Außenstehende können in
+Kreisen ausgewählt werden, erhalten bei privaten, für sie unlesbaren Inhalten
+aber weder eine Benachrichtigung noch ein automatisches Abonnement. Bestehende
+Chats und Nachrichten werden nicht rückwirkend verarbeitet. Es ist keine neue
+Datenbankmigration notwendig.
+
+Zusätzlicher Integrationstest (nur lokale, entbehrliche Testdatenbank):
+`HUMHUB_COMPAT_TEST=1 HUMHUB_ROOT=/path/to/humhub php tests/mentions-runtime.php`.
+
 ```text
 Conversation (ContentActiveRecord, normal Stream entry)
   ├── parent_conversation_id / origin_message_id  linked Unterthema (no Stream entry)
