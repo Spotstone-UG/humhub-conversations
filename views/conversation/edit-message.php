@@ -23,6 +23,7 @@ $submitUrl = $contentContainer->createUrl('/conversations/conversation/edit-mess
                 <?= $form->field($message, 'message')->widget(RichTextField::class, [
                     'id' => 'conversation-message-edit-' . $message->id,
                     'layout' => RichTextField::LAYOUT_BLOCK,
+                    'mentioningUrl' => $contentContainer->createUrl('/conversations/conversation/mentioning', ['conversationId' => $conversation->id]),
                     'pluginOptions' => ['maxHeight' => '300px'],
                     'placeholder' => 'Nachricht bearbeiten …',
                     'focus' => true,

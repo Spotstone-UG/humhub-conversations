@@ -29,6 +29,31 @@ final class ConversationController extends ContentContainerController
 
     public $validContentContainerClasses = [Space::class];
 
+    public function actionMentioning(int $conversationId)
+    {
+        $conversation = $this->findConversation($conversationId);
+        if (Yii::$app->user->isGuest || !(new ConversationMessage($this->contentContainer))->content->canEdit()) {
+            $this->forbidden();
+        }
+        $service = new \humhub\modules\conversations\services\ConversationMentionService();
+        $users = $service->candidates($this->contentContainer)
+            ->search((string) Yii::$app->request->get('keyword', ''))
+            ->orderBy(['user.last_login' => SORT_DESC])->limit(20)->all();
+        $results = [];
+        foreach ($users as $user) {
+            if (!$user->permissionManager->can(\humhub\modules\user\permissions\CanMention::class)) {
+                continue;
+            }
+            $results[] = [
+                'guid' => $user->guid, 'type' => 'u', 'name' => $user->getDisplayName(),
+                'image' => \humhub\modules\user\widgets\Image::widget(['user' => $user, 'width' => 20]),
+                'link' => $user->getUrl(),
+            ];
+            if (count($results) === 6) { break; }
+        }
+        return $this->asJson($results);
+    }
+
     public function actionIndex(bool $archived = false): string
     {
         $allConversations = Conversation::find()
