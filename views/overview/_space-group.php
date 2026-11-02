@@ -7,7 +7,7 @@ use humhub\modules\space\widgets\Image;
 
 /** @var array{space: \humhub\modules\space\models\Space, conversations: \humhub\modules\conversations\models\Conversation[], unreadCounts: array<int, int>, isMuted: bool} $group */
 $space = $group['space'];
-$muted = $group['isMuted'];
+$muted = $group['isMuted'] || !($group['isRelevant'] ?? true);
 ?>
 <section role="rowgroup" class="conversation-global-overview__space<?= $muted ? ' conversation-global-overview__space--muted' : '' ?>">
         <?php foreach ($group['conversations'] as $conversation): ?>
@@ -19,7 +19,7 @@ $muted = $group['isMuted'];
                     <div class="conversation-overview__topic-text">
                     <?php if ($conversation->parent_conversation_id !== null): ?><span aria-hidden="true">↳ </span><?php endif; ?>
                     <?= Html::a(Html::encode($conversation->title), $conversation->url) ?>
-                    <?php if ($conversation->parent_conversation_id !== null && $conversation->parentConversation !== null): ?>
+                    <?php if ($conversation->parent_conversation_id !== null && $conversation->parentConversation !== null && $conversation->parentConversation->content->canView($currentUser)): ?>
                         <small class="conversation-overview__parent-link">Unterthema zu: <?= Html::encode($conversation->parentConversation->title) ?></small>
                     <?php elseif ($conversation->getSubconversations()->count() > 0): ?>
                         <small class="conversation-overview__subcount"><?= $conversation->getSubconversations()->count() ?> Unterthemen</small>

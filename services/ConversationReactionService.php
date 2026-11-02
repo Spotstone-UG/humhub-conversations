@@ -15,7 +15,7 @@ final class ConversationReactionService
     /** Toggles one of the explicitly allowed Unicode emoji reactions. */
     public function toggle(ConversationMessage $message, User $user, string $emoji): void
     {
-        if (!$message->content->canView($user)) {
+        if (!(new ConversationVisibilityService())->canParticipate($message->conversation, $user)) {
             throw new ForbiddenHttpException();
         }
 

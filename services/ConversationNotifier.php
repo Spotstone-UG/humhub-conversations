@@ -6,7 +6,6 @@ namespace humhub\modules\conversations\services;
 use humhub\modules\conversations\models\Conversation;
 use humhub\modules\conversations\models\ConversationMessage;
 use humhub\modules\conversations\notifications\ChatNotification;
-use humhub\modules\space\models\Membership;
 use humhub\modules\space\models\Space;
 use humhub\modules\user\models\User;
 use Yii;
@@ -20,11 +19,8 @@ final class ConversationNotifier
         if (!$space instanceof Space || !Yii::$app->has('notification')) {
             return;
         }
-        $ids = Membership::find()->select('user_id')->where([
-            'space_id' => $space->id,
-            'status' => Membership::STATUS_MEMBER,
-        ])->andWhere(['<>', 'user_id', $sender->id])->column();
-        $this->send($conversation, $sender, array_map('intval', $ids), 'created');
+        $ids = (new ConversationInterestService())->recipientIds($conversation, $sender);
+        $this->send($conversation, $sender, $ids, 'created');
     }
 
     public function notifyInterested(ConversationMessage $message, User $sender, array $excludeIds = [], string $event = 'message'): void

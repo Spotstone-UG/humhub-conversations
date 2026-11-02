@@ -48,7 +48,7 @@ final class ConversationService
     /** @param string[] $fileGuids */
     public function postMessage(Conversation $conversation, ConversationMessage $message, array $fileGuids = [], string $submissionToken = ''): ConversationMessage
     {
-        if (!$conversation->content->canView() || !(new ConversationMessage($conversation->content->container))->content->canEdit()) {
+        if (!(new ConversationVisibilityService())->canWrite($conversation)) {
             throw new \yii\web\ForbiddenHttpException();
         }
         $submissionToken = trim($submissionToken);
@@ -76,6 +76,8 @@ final class ConversationService
                 Yii::$app->db->createCommand()->update(Conversation::tableName(),
                     ['id' => new \yii\db\Expression('[[id]]')], ['id' => $conversation->id])->execute();
                 $conversation->content->refresh();
+                $conversation->refresh();
+                if (!(new ConversationVisibilityService())->canWrite($conversation)) { throw new \yii\web\ForbiddenHttpException(); }
                 // Claim the token before creating content. The unique database index
                 // makes repeated clicks, refreshes and concurrent HTTP retries idempotent.
                 $submission = new ConversationMessageSubmission([
@@ -131,6 +133,7 @@ final class ConversationService
      */
     public function editMessage(Conversation $conversation, ConversationMessage $message): bool
     {
+        if (!(new ConversationVisibilityService())->canParticipate($conversation)) { throw new \yii\web\ForbiddenHttpException(); }
         if (
             (int) $message->conversation_id !== (int) $conversation->id
             || (int) $message->content->created_by !== (int) Yii::$app->user->id
@@ -173,6 +176,7 @@ final class ConversationService
      */
     public function deleteMessage(Conversation $conversation, ConversationMessage $message): bool
     {
+        if (!(new ConversationVisibilityService())->canParticipate($conversation)) { throw new \yii\web\ForbiddenHttpException(); }
         if (
             (int) $message->conversation_id !== (int) $conversation->id
             || (int) $message->content->created_by !== (int) Yii::$app->user->id

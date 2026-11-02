@@ -33,6 +33,26 @@ It deliberately has no AI, automatic summaries or content screening. AI support 
 
 ## Architecture
 
+### Öffentliche Chats und Relevanz ab 1.22
+
+Für Außenstehende gibt es drei Stufen: **Unsichtbar**, **Öffentlich lesbar** und
+**Öffentlich les- und schreibbar**. Mitglieder behalten die üblichen Space-Rechte.
+Im lesbaren Modus können Außenstehende abonnieren, aber keine Nachrichten,
+Bearbeitungen, Reaktionen oder Konsentbeiträge senden. Schreibbare Chats erlauben
+angemeldeten Außenstehenden Nachrichten und Reaktionen, jedoch keine Chatverwaltung.
+Gäste dürfen niemals schreiben. Private Spaces bleiben geschützt.
+
+Lesbare Chats aus nicht abonnierten Spaces erscheinen unter **Weitere lesbare
+Chats**, sowohl in der Übersicht als auch mit der passenden Governance-Navigation
+auf der Startseite. Ein persönliches Chat-Abonnement verschiebt sie in die eigene
+Liste; zusätzliche, nicht abonnierte Chats erzeugen keinen roten Ungelesen-Zähler.
+Benachrichtigungen gibt es ausschließlich nach Chat-Abonnement oder Erst-Erwähnung,
+auch neu angelegte Chats lösen keine pauschalen Hinweise an alle Space-Mitglieder aus.
+
+Die neue Migration `m261102_090000_add_outsider_writing` ergänzt nur das
+Schreibrecht für Außenstehende. Bestehende öffentliche Chats bleiben lesbar;
+Schreibrechte werden erst durch ausdrückliche Auswahl freigegeben.
+
 ### Sichtbarkeit ab 1.21
 
 Im Chatkopf steht dauerhaft „Sichtbar für …“. Personen mit Bearbeitungsrecht können

@@ -19,7 +19,7 @@ ConversationAsset::register($this);
 $stateService = new ConversationStateService();
 $currentUser = Yii::$app->user->identity;
 $visibilityLabels = (new \humhub\modules\conversations\services\ConversationVisibilityService())->labels($conversation);
-$visibilityLabel = $visibilityLabels[(int) $conversation->content->visibility];
+$visibilityLabel = $visibilityLabels[(new \humhub\modules\conversations\services\ConversationVisibilityService())->mode($conversation)];
 $uploads = Upload::withName('fileList[]');
 $composerMessage = new \humhub\modules\conversations\models\ConversationMessage($contentContainer);
 $composerEditorId = 'conversation-message-editor-' . (int) $conversation->id;
@@ -46,7 +46,7 @@ $avatar = static function ($user): string {
 <section class="conversation-view" data-conversation-live-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-state', ['conversationId' => $conversation->id])) ?>" data-conversation-live-messages-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-messages', ['conversationId' => $conversation->id])) ?>" data-conversation-typing-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/typing', ['conversationId' => $conversation->id])) ?>" data-conversation-typing-state-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/typing-state', ['conversationId' => $conversation->id])) ?>" data-conversation-latest-message-id="<?= (int) $latestMessageId ?>"<?php if ($realtimeConnection !== null): ?> data-conversation-realtime-url="<?= Html::encode($realtimeConnection['url']) ?>" data-conversation-realtime-token="<?= Html::encode($realtimeConnection['token']) ?>"<?php endif; ?>>
     <header class="conversation-view__header">
         <div class="conversation-view__heading">
-            <?php if ($conversation->parentConversation !== null): ?>
+            <?php if ($conversation->parentConversation !== null && $conversation->parentConversation->content->canView($currentUser)): ?>
                 <?= Html::a('← Zur Hauptkonversation: ' . Html::encode($conversation->parentConversation->title), $conversation->parentConversation->url, ['class' => 'conversation-view__back']) ?>
             <?php else: ?>
                 <?= Html::a('← ' . Html::encode($contentContainer->displayName), $contentContainer->createUrl('/conversations/conversation/index'), ['class' => 'conversation-view__back']) ?>
@@ -163,7 +163,7 @@ $avatar = static function ($user): string {
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
-            <?php if (!Yii::$app->user->isGuest): ?>
+            <?php if ($canParticipate): ?>
                 <?= Html::a('Schwerwiegenden Einwand einbringen und Chat wieder öffnen', '#', [
                     'class' => 'conversation-outcome__reopen btn btn-danger btn-sm',
                     'data-action-click' => 'ui.modal.load',
@@ -250,7 +250,7 @@ $avatar = static function ($user): string {
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>
-                <?php if (!$message->isDeleted): ?>
+                <?php if (!$message->isDeleted && $canWrite): ?>
                 <div class="conversation-message__actions">
                     <?= Html::a('Antworten', '#conversation-composer-' . (int) $conversation->id, [
                         'class' => 'conversation-message__reply-trigger',
@@ -278,6 +278,7 @@ $avatar = static function ($user): string {
                                     'title' => $reactionTitle,
                                     'aria-label' => $reaction['emoji'] . ': ' . str_replace("\n", ' ', $reactionTitle),
                                     'aria-pressed' => $reaction['mine'] ? 'true' : 'false',
+                                    'disabled' => !$canWrite,
                                     'data-reaction-users' => \yii\helpers\Json::encode($reaction['users']),
                                     'data-reaction-action' => $reaction['mine'] ? 'Eigene Reaktion entfernen' : 'Auch so reagieren',
                                 ]) ?>
@@ -304,7 +305,10 @@ $avatar = static function ($user): string {
     <div class="conversation-typing" data-conversation-typing hidden aria-live="polite"></div>
     </div>
 
-    <?php if (!$conversation->isClosed): ?>
+    <?php if (!$conversation->isClosed && !$canWrite): ?>
+        <p class="conversation-read-only"><i class="fa fa-eye" aria-hidden="true"></i> Du kannst diesen Chat mitlesen und abonnieren. Schreiben können hier nur Space-Mitglieder.</p>
+    <?php endif; ?>
+    <?php if (!$conversation->isClosed && $canWrite): ?>
         <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/message', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-composer', 'id' => 'conversation-composer-' . (int) $conversation->id, 'data-conversation-draft-key' => 'conversation-draft-' . (int) $conversation->id, 'data-conversation-editor-id' => $composerEditorId, 'data-conversation-send-with-ctrl-enter' => $sendWithCtrlEnter ? 'true' : 'false']) ?>
             <div class="conversation-composer__reply" hidden data-conversation-reply-preview></div>
             <?= Html::hiddenInput('ConversationMessage[reply_to_message_id]', '', ['data-conversation-reply-input' => true]) ?>

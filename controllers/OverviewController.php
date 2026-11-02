@@ -66,7 +66,8 @@ final class OverviewController extends Controller
         $items = [];
         foreach ($groups as $group) {
             foreach ($group['conversations'] as $conversation) {
-                $items[] = $conversation->id . ':' . ($conversation->last_message_at ?? '') . ':' . ($conversation->closed_at ?? '');
+                $items[] = $conversation->id . ':' . ($conversation->last_message_at ?? '') . ':' . ($conversation->closed_at ?? '')
+                    . ':' . (int) ($group['isRelevant'] ?? true) . ':' . (int) $group['isMuted'] . ':' . (int) $conversation->content->visibility . ':' . (int) $conversation->outsider_writable;
             }
         }
         return sha1(implode('|', $items));

@@ -37,7 +37,7 @@ final class ConversationController extends ContentContainerController
         if (Yii::$app->request->isPost) {
             $this->forcePostRequest();
             $visibility = Yii::$app->request->post('visibility');
-            if (!in_array($visibility, ['0', '1'], true)) {
+            if (!in_array($visibility, ['0', '1', '2'], true)) {
                 throw new \yii\web\BadRequestHttpException('Ungültige Sichtbarkeit.');
             }
             $service->change($conversation, (int) $visibility);
@@ -53,7 +53,7 @@ final class ConversationController extends ContentContainerController
     public function actionMentioning(int $conversationId)
     {
         $conversation = $this->findConversation($conversationId);
-        if (Yii::$app->user->isGuest || !(new ConversationMessage($this->contentContainer))->content->canEdit()) {
+        if (!(new \humhub\modules\conversations\services\ConversationVisibilityService())->canWrite($conversation)) {
             $this->forbidden();
         }
         $service = new \humhub\modules\conversations\services\ConversationMentionService();
@@ -203,7 +203,7 @@ final class ConversationController extends ContentContainerController
         $messages = $conversation->getMessages()->all();
         $subconversationsByOrigin = [];
         foreach ($conversation->subconversations as $subconversation) {
-            if ($subconversation->origin_message_id !== null) {
+            if ($subconversation->origin_message_id !== null && $subconversation->content->canView(Yii::$app->user->identity)) {
                 $subconversationsByOrigin[(int) $subconversation->origin_message_id][] = $subconversation;
             }
         }
@@ -224,6 +224,8 @@ final class ConversationController extends ContentContainerController
             'consensus' => $consensusService->currentStatus($conversation, Yii::$app->user->identity),
             'canEnd' => !$conversation->isClosed && $conversation->content->canEdit() && $consensusService->isParticipant($conversation, Yii::$app->user->identity),
             'isInterested' => (new ConversationInterestService())->isInterested($conversation, Yii::$app->user->identity),
+            'canWrite' => (new \humhub\modules\conversations\services\ConversationVisibilityService())->canWrite($conversation),
+            'canParticipate' => (new \humhub\modules\conversations\services\ConversationVisibilityService())->canParticipate($conversation),
             'latestMessageId' => $lastShownMessageId ?? 0,
         ];
     }
@@ -247,7 +249,7 @@ final class ConversationController extends ContentContainerController
     {
         $this->forcePostRequest();
         $conversation = $this->findConversation($conversationId);
-        if ($conversation->isClosed || !$conversation->content->canEdit()) {
+        if (!(new \humhub\modules\conversations\services\ConversationVisibilityService())->canWrite($conversation)) {
             $this->forbidden();
         }
 
@@ -429,7 +431,7 @@ final class ConversationController extends ContentContainerController
     public function actionReopen(int $conversationId)
     {
         $conversation = $this->findConversation($conversationId);
-        if (Yii::$app->user->isGuest) {
+        if (!(new \humhub\modules\conversations\services\ConversationVisibilityService())->canParticipate($conversation)) {
             $this->forbidden();
         }
         if (Yii::$app->request->isPost) {

@@ -17,6 +17,9 @@ final class ContentEmojiReactionService
 {
     public function toggle(ContentActiveRecord|ContentAddonActiveRecord $content, User $user, string $emoji): void
     {
+        $chat = $content instanceof \humhub\modules\conversations\models\ConversationMessage ? $content->conversation
+            : ($content instanceof \humhub\modules\conversations\models\Conversation ? $content : null);
+        if ($chat !== null && !(new ConversationVisibilityService())->canParticipate($chat, $user)) { throw new ForbiddenHttpException(); }
         if (!$content->content->canView($user) || !ContentEmojiReactionLink::supports($content)) {
             throw new ForbiddenHttpException();
         }

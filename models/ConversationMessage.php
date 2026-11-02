@@ -40,6 +40,13 @@ final class ConversationMessage extends ContentActiveRecord
     {
         parent::afterSave($insert, $changedAttributes);
 
+        // HumHub may demote a nonmember's Content to private. The message must
+        // instead inherit the explicit, permission-checked parent chat scope.
+        $parentVisibility = (int) $this->conversation->content->visibility;
+        if ((int) $this->content->visibility !== $parentVisibility) {
+            $this->content->updateAttributes(['visibility' => $parentVisibility]);
+        }
+
         $processed = ConversationRichText::postProcess($this->message, $this, 'message');
         $firstMentionIds = array_map(static fn($user): int => (int) $user->id, $processed['mention'] ?? []);
 

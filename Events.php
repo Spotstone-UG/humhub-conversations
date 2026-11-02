@@ -22,6 +22,9 @@ final class Events
         $content = $event->sender;
         $conversation = $content->getModel();
         if (!$conversation instanceof \humhub\modules\conversations\models\Conversation) { return; }
+        if (!$content->isPublic()) {
+            \humhub\modules\conversations\models\Conversation::updateAll(['outsider_writable' => 0], ['id' => $conversation->id]);
+        }
         try {
             (new \humhub\modules\conversations\services\ConversationVisibilityService())
                 ->synchronizeMessages($conversation, (int) $content->visibility);

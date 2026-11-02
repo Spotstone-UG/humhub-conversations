@@ -18,9 +18,41 @@ final class ConversationVisibilityService
         $circle = $conversation->content->container instanceof Space
             && (new ConversationMentionService())->isCircle($conversation->content->container);
         return [
-            Content::VISIBILITY_PRIVATE => $circle ? 'Nur Kreismitglieder' : 'Nur Space-Mitglieder',
-            Content::VISIBILITY_PUBLIC => $circle ? 'Alle (auch außerhalb des Kreises)' : 'Alle (auch außerhalb des Spaces)',
+            0 => $circle ? 'Unsichtbar für Außenstehende – nur Kreismitglieder' : 'Unsichtbar für Außenstehende – nur Space-Mitglieder',
+            1 => 'Öffentlich lesbar',
+            2 => 'Öffentlich les- und schreibbar',
         ];
+    }
+
+    public function mode(Conversation $conversation): int
+    {
+        return !$conversation->content->isPublic() ? 0 : ((int) $conversation->outsider_writable === 1 ? 2 : 1);
+    }
+
+    public function canParticipate(Conversation $conversation, ?\humhub\modules\user\models\User $user = null): bool
+    {
+        if (!$conversation->isNewRecord) {
+            $conversation = Conversation::findOne($conversation->id);
+            if ($conversation === null) { return false; }
+        }
+        $user ??= Yii::$app->user->identity;
+        if (!$user || !$user->isActive() || !$conversation->content->canView($user)) { return false; }
+        $space = $conversation->content->container;
+        if (!$space instanceof Space || $space->isBlockedForUser($user)) { return false; }
+        if ($user->canManageAllContent()) { return true; }
+        if ($space->isMember($user->id)) {
+            return $space->getPermissionManager($user)->can(\humhub\modules\conversations\permissions\CreateConversation::class);
+        }
+        return (int) $space->visibility !== Space::VISIBILITY_NONE && $this->mode($conversation) === 2;
+    }
+
+    public function canWrite(Conversation $conversation, ?\humhub\modules\user\models\User $user = null): bool
+    {
+        if (!$conversation->isNewRecord) {
+            $conversation = Conversation::findOne($conversation->id);
+            if ($conversation === null) { return false; }
+        }
+        return !$conversation->isClosed && $this->canParticipate($conversation, $user);
     }
 
     public function canShare(Conversation $conversation): bool
@@ -33,20 +65,27 @@ final class ConversationVisibilityService
     public function change(Conversation $conversation, int $visibility): void
     {
         if (Yii::$app->user->isGuest || !$conversation->content->canEdit()) { throw new ForbiddenHttpException(); }
-        if (!in_array($visibility, [Content::VISIBILITY_PRIVATE, Content::VISIBILITY_PUBLIC], true)) {
+        if (!in_array($visibility, [0, 1, 2], true)) {
             throw new BadRequestHttpException('Ungültige Sichtbarkeit.');
         }
-        if ($visibility === Content::VISIBILITY_PUBLIC && !$this->canShare($conversation)) {
+        if ($visibility > 0 && !$this->canShare($conversation)) {
             throw new ForbiddenHttpException('Dieser Space ist privat oder du darfst hier keine öffentlichen Inhalte freigeben.');
         }
         Yii::$app->db->transaction(function () use ($conversation, $visibility): void {
             Yii::$app->db->createCommand()->update(Conversation::tableName(),
                 ['id' => new \yii\db\Expression('[[id]]')], ['id' => $conversation->id])->execute();
             $conversation->content->refresh();
-            if ((int) $conversation->content->visibility === $visibility) { return; }
-            $conversation->content->visibility = $visibility;
-            if (!$conversation->content->save() || (int) $conversation->content->visibility !== $visibility) {
+            $conversation->refresh();
+            if ($this->mode($conversation) === $visibility) { return; }
+            $contentVisibility = $visibility === 0 ? Content::VISIBILITY_PRIVATE : Content::VISIBILITY_PUBLIC;
+            $oldVisibility = (int) $conversation->content->visibility;
+            $conversation->outsider_writable = $visibility === 2 ? 1 : 0;
+            $conversation->content->visibility = $contentVisibility;
+            if (!$conversation->save(false, ['outsider_writable']) || (int) $conversation->content->visibility !== $contentVisibility) {
                 throw new BadRequestHttpException('Die Sichtbarkeit konnte nicht gespeichert werden.');
+            }
+            if ($oldVisibility === $contentVisibility) {
+                (new ConversationNotifier())->notifyChanged($conversation, Yii::$app->user->identity);
             }
             // The Content event also covers HumHub's native visibility menu.
         });

@@ -7,7 +7,8 @@ use humhub\modules\conversations\assets\ConversationAsset;
 
 /** @var array<int, array{space: \humhub\modules\space\models\Space, conversations: \humhub\modules\conversations\models\Conversation[], unreadCounts: array<int, int>, isMuted: bool}> $groups */
 ConversationAsset::register($this);
-$activeGroups = array_filter($groups, static fn(array $group): bool => !$group['isMuted']);
+$activeGroups = array_filter($groups, static fn(array $group): bool => !$group['isMuted'] && ($group['isRelevant'] ?? true));
+$additionalGroups = array_filter($groups, static fn(array $group): bool => !$group['isMuted'] && !($group['isRelevant'] ?? true));
 $mutedGroups = array_filter($groups, static fn(array $group): bool => $group['isMuted']);
 ?>
 <div class="container conversation-global-overview" data-conversation-overview-live-url="<?= Html::encode(Url::to(['/conversations/overview/live-state', 'archived' => (int) $archived])) ?>" data-conversation-overview-unread="<?= (int) $unreadTotal ?>" data-conversation-overview-revision="<?= Html::encode($overviewRevision) ?>">
@@ -18,7 +19,7 @@ $mutedGroups = array_filter($groups, static fn(array $group): bool => $group['is
         </div>
         <div class="panel-body">
             <?= Html::a($archived ? '← Aktive Chats anzeigen' : 'Archivierte Chats anzeigen', ['/conversations/overview/index', 'archived' => $archived ? 0 : 1], ['class' => $archived ? 'btn btn-default btn-sm' : 'text-muted', 'style' => $archived ? null : 'display: inline-block; font-size: .8rem; margin-bottom: .75rem;']) ?>
-            <?php if ($activeGroups === [] && $mutedGroups === []): ?>
+            <?php if ($activeGroups === [] && $mutedGroups === [] && $additionalGroups === []): ?>
                 <p class="text-body-secondary mb-0">Für dich sind noch keine Chats sichtbar.</p>
             <?php endif; ?>
 
@@ -46,6 +47,16 @@ $mutedGroups = array_filter($groups, static fn(array $group): bool => $group['is
             <?php foreach ($activeGroups as $group): ?>
                 <?= $this->render('_space-group', ['group' => $group, 'currentUser' => $currentUser]) ?>
             <?php endforeach; ?>
+
+            <?php if ($additionalGroups !== []): ?>
+                <section class="conversation-overview__additional" aria-label="Weitere lesbare Chats">
+                    <hr><h3>Weitere lesbare Chats</h3>
+                    <p>Aus Spaces, die du nicht abonniert hast. Ohne Chat-Abonnement erhältst du keine laufenden Hinweise.</p>
+                    <?php foreach ($additionalGroups as $group): ?>
+                        <?= $this->render('_space-group', ['group' => $group, 'currentUser' => $currentUser]) ?>
+                    <?php endforeach; ?>
+                </section>
+            <?php endif; ?>
 
             <?php if ($mutedGroups !== []): ?>
                 <details class="conversation-global-overview__muted-spaces" data-conversation-muted-spaces>
