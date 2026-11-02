@@ -33,6 +33,24 @@ It deliberately has no AI, automatic summaries or content screening. AI support 
 
 ## Architecture
 
+### Sichtbarkeit ab 1.21
+
+Im Chatkopf steht dauerhaft „Sichtbar für …“. Personen mit Bearbeitungsrecht können
+über **Ändern** zwischen **Nur Kreismitglieder** und **Alle (auch außerhalb des Kreises)**
+wählen (in gewöhnlichen Spaces entsprechend „Space-Mitglieder“). Die Änderung
+gilt auch für bestehende Nachrichten und ihre angehängten Dateien. Neue Nachrichten
+übernehmen den aktuellen Stand; Unterthemen behalten eine eigene Sichtbarkeit.
+Auch HumHubs native Sichtbarkeitssteuerung synchronisiert die Chat-Nachrichten.
+
+Die Funktion nutzt HumHubs gespeicherte Content-Sichtbarkeit und erweitert keine
+Space-Rechte. In vollständig privaten Spaces ist eine Freigabe nach außen gesperrt.
+In Spaces für angemeldete Personen bedeutet „Alle“ die gesamte Community; in
+öffentlich sichtbaren Spaces kann auch Gastzugriff möglich sein. Der Dialog erklärt
+die jeweilige Bedeutung vor dem Speichern. Administrationsrechte bleiben erhalten.
+Bestehende Sichtbarkeiten werden durch die Installation nicht geändert. Keine neue Migration.
+
+Integrationstest: `HUMHUB_COMPAT_TEST=1 HUMHUB_ROOT=/path/to/humhub php tests/visibility-runtime.php`.
+
 ### @-Erwähnungen ab 1.20
 
 Ab 1.20.1 verwenden beide Nachrichteneditoren das normale HumHub-Preset mit

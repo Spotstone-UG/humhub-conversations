@@ -1,5 +1,8 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 
+.conversation-visibility { align-items: center; display: flex; flex-wrap: wrap; font-size: .82rem; gap: .6rem; margin-top: .5rem; }
+.conversation-visibility__change { text-decoration: underline; }
+
 .conversation-card {
     border: 1px solid var(--bs-border-color, #e5e7eb);
     border-radius: .75rem;

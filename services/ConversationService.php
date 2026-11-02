@@ -71,6 +71,11 @@ final class ConversationService
 
         try {
             return Yii::$app->db->transaction(function () use ($conversation, $message, $fileGuids, $submissionToken): ConversationMessage {
+                // A concurrent visibility change must finish before this new
+                // message inherits its parent's current permissions.
+                Yii::$app->db->createCommand()->update(Conversation::tableName(),
+                    ['id' => new \yii\db\Expression('[[id]]')], ['id' => $conversation->id])->execute();
+                $conversation->content->refresh();
                 // Claim the token before creating content. The unique database index
                 // makes repeated clicks, refreshes and concurrent HTTP retries idempotent.
                 $submission = new ConversationMessageSubmission([

@@ -18,6 +18,8 @@ use humhub\modules\user\widgets\Image as UserImage;
 ConversationAsset::register($this);
 $stateService = new ConversationStateService();
 $currentUser = Yii::$app->user->identity;
+$visibilityLabels = (new \humhub\modules\conversations\services\ConversationVisibilityService())->labels($conversation);
+$visibilityLabel = $visibilityLabels[(int) $conversation->content->visibility];
 $uploads = Upload::withName('fileList[]');
 $composerMessage = new \humhub\modules\conversations\models\ConversationMessage($contentContainer);
 $composerEditorId = 'conversation-message-editor-' . (int) $conversation->id;
@@ -51,6 +53,16 @@ $avatar = static function ($user): string {
             <?php endif; ?>
             <h1><?= Html::encode($conversation->title) ?></h1>
             <?php if ($conversation->summary): ?><p><?= Html::encode($conversation->summary) ?></p><?php endif; ?>
+            <div class="conversation-visibility">
+                <span><i class="fa <?= $conversation->content->isPublic() ? 'fa-globe' : 'fa-lock' ?>" aria-hidden="true"></i> Sichtbar für: <?= Html::encode($visibilityLabel) ?></span>
+                <?php if ($conversation->content->canEdit()): ?>
+                    <?= Html::a('Ändern', '#', [
+                        'class' => 'conversation-visibility__change', 'data-action-click' => 'ui.modal.load',
+                        'data-action-url' => $contentContainer->createUrl('/conversations/conversation/visibility', ['conversationId' => $conversation->id]),
+                        'aria-label' => 'Sichtbarkeit des Chats ändern',
+                    ]) ?>
+                <?php endif; ?>
+            </div>
         </div>
         <div class="conversation-view__actions">
             <?php if ($conversation->content->archived): ?><span class="conversation-status">Archiviert</span><?php endif; ?>

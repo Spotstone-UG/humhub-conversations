@@ -15,6 +15,28 @@ use Yii;
 
 final class Events
 {
+    /** Synchronize message and attachment access, including native HumHub controls. */
+    public static function onContentVisibilityChanged($event): void
+    {
+        if (!array_key_exists('visibility', $event->changedAttributes)) { return; }
+        $content = $event->sender;
+        $conversation = $content->getModel();
+        if (!$conversation instanceof \humhub\modules\conversations\models\Conversation) { return; }
+        try {
+            (new \humhub\modules\conversations\services\ConversationVisibilityService())
+                ->synchronizeMessages($conversation, (int) $content->visibility);
+        } catch (\Throwable $exception) {
+            \humhub\modules\content\models\Content::updateAll(
+                ['visibility' => $event->changedAttributes['visibility']], ['id' => $content->id]);
+            $content->visibility = $event->changedAttributes['visibility'];
+            throw $exception;
+        }
+        if (Yii::$app->has('user') && !Yii::$app->user->isGuest) {
+            (new \humhub\modules\conversations\services\ConversationNotifier())
+                ->notifyChanged($conversation, Yii::$app->user->identity);
+        }
+    }
+
     /** Replaces every native LikeLink with the same accessible emoji reaction bar. */
     public static function onLikeLinkAfterRun($event): void
     {

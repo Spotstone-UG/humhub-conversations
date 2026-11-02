@@ -29,6 +29,27 @@ final class ConversationController extends ContentContainerController
 
     public $validContentContainerClasses = [Space::class];
 
+    public function actionVisibility(int $conversationId)
+    {
+        $conversation = $this->findConversation($conversationId);
+        if (Yii::$app->user->isGuest || !$conversation->content->canEdit()) { $this->forbidden(); }
+        $service = new \humhub\modules\conversations\services\ConversationVisibilityService();
+        if (Yii::$app->request->isPost) {
+            $this->forcePostRequest();
+            $visibility = Yii::$app->request->post('visibility');
+            if (!in_array($visibility, ['0', '1'], true)) {
+                throw new \yii\web\BadRequestHttpException('Ungültige Sichtbarkeit.');
+            }
+            $service->change($conversation, (int) $visibility);
+            Yii::$app->session->setFlash('success', 'Die Sichtbarkeit des Chats wurde gespeichert.');
+            return $this->redirect($conversation->url);
+        }
+        return $this->renderAjax('visibility', [
+            'conversation' => $conversation, 'contentContainer' => $this->contentContainer,
+            'labels' => $service->labels($conversation), 'canShare' => $service->canShare($conversation),
+        ]);
+    }
+
     public function actionMentioning(int $conversationId)
     {
         $conversation = $this->findConversation($conversationId);
