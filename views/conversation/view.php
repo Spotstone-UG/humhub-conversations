@@ -52,7 +52,12 @@ $avatar = static function ($user): string {
                 <?= Html::a('← ' . Html::encode($contentContainer->displayName), $contentContainer->createUrl('/conversations/conversation/index'), ['class' => 'conversation-view__back']) ?>
             <?php endif; ?>
             <h1><?= Html::encode($conversation->title) ?></h1>
-            <?php if ($conversation->summary): ?><p><?= Html::encode($conversation->summary) ?></p><?php endif; ?>
+            <?php if ($conversation->summary): ?>
+                <details class="conversation-view__description">
+                    <summary>Chatbeschreibung</summary>
+                    <p><?= Html::encode($conversation->summary) ?></p>
+                </details>
+            <?php endif; ?>
             <div class="conversation-visibility">
                 <span><i class="fa <?= $conversation->content->isPublic() ? 'fa-globe' : 'fa-lock' ?>" aria-hidden="true"></i> Sichtbar für: <?= Html::encode($visibilityLabel) ?></span>
                 <?php if ($conversation->content->canEdit()): ?>
@@ -319,7 +324,7 @@ $avatar = static function ($user): string {
                 'preset' => 'normal',
                 'id' => $composerEditorId,
                 'backupInterval' => 3,
-                'placeholder' => 'Nachricht schreiben …  Mit @ kannst du Menschen erwähnen.',
+                'placeholder' => 'Nachricht schreiben … (@Name)',
                 // The normal preset includes interactive @ suggestions.
                 // Start with members; typed circle searches include the community.
                 'mentioningUrl' => $contentContainer->createUrl('/conversations/conversation/mentioning', ['conversationId' => $conversation->id]),

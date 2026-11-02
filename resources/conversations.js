@@ -268,7 +268,7 @@
     function scrollIntoReadableArea(target, alignment = 'center', behavior = 'smooth') {
         if (!target) { return; }
         const feed = target.closest('.conversation-view__feed');
-        if (feed) {
+        if (feed && !document.body.classList.contains('conversation-page--scroll')) {
             const feedRect = feed.getBoundingClientRect();
             const targetRect = target.getBoundingClientRect();
             const readableTop = feedRect.top + 12;
@@ -313,7 +313,10 @@
         if (!source || !targetMessages || !sourceMessages) { return false; }
 
         const feed = view.querySelector('.conversation-view__feed');
-        const followMessages = !feed || feed.scrollHeight - feed.scrollTop - feed.clientHeight < 48;
+        const pageScroll = document.body.classList.contains('conversation-page--scroll');
+        const followMessages = pageScroll
+            ? (targetMessages.lastElementChild?.getBoundingClientRect().bottom || 0) < window.innerHeight + 48
+            : !feed || feed.scrollHeight - feed.scrollTop - feed.clientHeight < 48;
         const knownId = Number(view.dataset.conversationLatestMessageId || 0);
         const items = Array.from(sourceMessages.children);
         let firstNewIndex = items.findIndex(function (item) {
@@ -361,7 +364,7 @@
         // Show the entire new-message run when it fits. Otherwise begin with
         // the oldest of the newest messages that fit into one viewport.
         const feed = messages[0]?.closest('.conversation-view__feed');
-        const viewportHeight = feed?.clientHeight || window.innerHeight;
+        const viewportHeight = document.body.classList.contains('conversation-page--scroll') ? window.innerHeight : feed?.clientHeight || window.innerHeight;
         let requiredHeight = 0;
         let firstVisible = messages.at(-1);
         for (let index = messages.length - 1; index >= 0; index--) {
@@ -485,7 +488,7 @@
             const feed = view.querySelector('.conversation-view__feed');
             if (resume) {
                 scrollIntoReadableArea(resume, 'start', 'auto');
-            } else if (feed) {
+            } else if (feed && !document.body.classList.contains('conversation-page--scroll')) {
                 feed.scrollTo({top: feed.scrollHeight, behavior: 'instant'});
             } else {
                 scrollIntoReadableArea(latest, 'end', 'auto');
@@ -512,18 +515,28 @@
         // HumHub can replace just the content area when navigating back to the
         // overview. Keep the focused layout strictly scoped to an open chat.
         document.body.classList.toggle('conversation-page', Boolean(conversationView));
+        document.body.classList.remove('conversation-page--scroll');
         if (conversationView) {
             const syncViewport = function () {
+                if (!conversationView.isConnected) { return; }
                 const topbars = Array.from(document.querySelectorAll('#topbar-first, #topbar-second'));
                 const topOffset = Math.max(0, ...topbars.map(function (bar) { return bar.getBoundingClientRect().bottom; }));
-                document.documentElement.style.setProperty('--conversation-top-offset', Math.ceil(topOffset) + 'px');
+                const viewportHeight = window.visualViewport?.scale === 1 ? window.visualViewport.height : window.innerHeight;
+                document.body.style.setProperty('--conversation-top-offset', Math.ceil(topOffset) + 'px');
+                document.body.style.setProperty('--conversation-viewport-height', Math.floor(viewportHeight) + 'px');
                 const composer = document.querySelector('.conversation-composer');
                 document.documentElement.style.setProperty('--conversation-composer-height', Math.ceil(composer?.getBoundingClientRect().height || 0) + 'px');
+                const headerHeight = conversationView.querySelector('.conversation-view__header')?.getBoundingClientRect().height || 0;
+                const composerHeight = composer?.getBoundingClientRect().height || 0;
+                document.body.classList.toggle('conversation-page--scroll', viewportHeight - topOffset - headerHeight - composerHeight < 240);
             };
             syncViewport();
             window.addEventListener('resize', syncViewport, {passive: true});
+            window.visualViewport?.addEventListener('resize', syncViewport, {passive: true});
             const composer = document.querySelector('.conversation-composer');
             if (composer && window.ResizeObserver) { new ResizeObserver(syncViewport).observe(composer); }
+            const header = conversationView.querySelector('.conversation-view__header');
+            if (header && window.ResizeObserver) { new ResizeObserver(syncViewport).observe(header); }
         }
         initializeReadingPosition();
         const highlightHashTarget = function () {
@@ -539,6 +552,13 @@
         window.addEventListener('hashchange', highlightHashTarget);
 
         document.querySelectorAll('.conversation-composer').forEach(function (composer) {
+            const formatting = composer.querySelector('.conversation-composer__markdown-help');
+            if (formatting && !formatting.dataset.layoutBound) {
+                formatting.dataset.layoutBound = 'true';
+                formatting.addEventListener('toggle', function () {
+                    composer.classList.toggle('is-formatting-expanded', formatting.open);
+                });
+            }
             const key = composer.dataset.conversationDraftKey;
             const saved = key ? window.localStorage.getItem(key) : null;
             if (saved && editorText(composer) === '') { setEditorText(composer, saved); }

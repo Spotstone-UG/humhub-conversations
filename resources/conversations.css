@@ -157,8 +157,8 @@
 /* A conversation is a focused reading and writing surface. The surrounding
  * Space remains one step away through the back link instead of consuming the
  * vertical space needed for messages. */
-body.conversation-page { --conversation-top-offset: 7rem; --conversation-composer-height: 0px; height: 100dvh; overflow: hidden; padding-top: var(--conversation-top-offset); }
-body.conversation-page .space-layout-container { height: calc(100dvh - var(--conversation-top-offset)); margin: 0; max-width: none; padding: 0; }
+body.conversation-page { height: var(--conversation-viewport-height, 100dvh); overflow: hidden; padding-top: var(--conversation-top-offset, 7rem); }
+body.conversation-page .space-layout-container { height: calc(var(--conversation-viewport-height, 100dvh) - var(--conversation-top-offset, 7rem)); margin: 0; max-width: none; padding: 0; }
 body.conversation-page .space-layout-container > :not(.space-content),
 body.conversation-page .space-content > .layout-nav-container,
 body.conversation-page .space-content > .layout-sidebar-container { display: none; }
@@ -168,12 +168,22 @@ body.conversation-page .conversation-view { background: var(--bs-body-bg, #fff);
 body.conversation-page .conversation-view__header { flex: 0 0 auto; margin: 0; padding: .85rem 0 .7rem; }
 body.conversation-page .conversation-view__header h1 { font-size: clamp(1.15rem, 2vw, 1.45rem); margin: .35rem 0 .15rem; }
 body.conversation-page .conversation-view__header p { font-size: .88rem; margin: 0; }
+body.conversation-page .conversation-view__heading { min-width: 0; overflow-wrap: anywhere; }
+.conversation-view__description { font-size: .88rem; margin: .25rem 0; }
+.conversation-view__description summary { cursor: pointer; padding: .25rem 0; }
+.conversation-view__description[open] { max-height: 24dvh; overflow-y: auto; }
 body.conversation-page .conversation-view__feed { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding: 0 .15rem 1rem; scrollbar-gutter: stable; }
 body.conversation-page .conversation-view__navigation { background: var(--bs-body-bg, #fff); margin: 0; padding: .35rem 0 .6rem; position: sticky; top: 0; z-index: 2; }
 body.conversation-page .conversation-view__navigation label { flex-basis: 14rem; }
 body.conversation-page .conversation-view__messages { min-height: 100%; }
 body.conversation-page .conversation-composer { background: var(--bs-body-bg, #fff); bottom: auto; flex: 0 0 auto; margin: 0 -.15rem; padding: .65rem .15rem max(.65rem, env(safe-area-inset-bottom)); position: relative; z-index: 3; }
-body.conversation-page .conversation-composer [contenteditable="true"] { max-height: min(26dvh, 14rem); overflow-y: auto; }
+body.conversation-page .conversation-composer [contenteditable="true"],
+body.conversation-page .conversation-composer textarea.form-control { min-height: 3.25rem; max-height: min(20dvh, 10rem); overflow-y: auto; font-size: max(16px, 1em); }
+body.conversation-page .conversation-composer:not(.is-formatting-expanded) .ProseMirror-menubar { display: none; }
+body.conversation-page .conversation-composer .ProseMirror-menubar { white-space: normal; }
+body.conversation-page .conversation-composer__controls { margin-top: .15rem; }
+body.conversation-page .conversation-composer__markdown-help { margin-top: .15rem; }
+body.conversation-page .conversation-composer__markdown-help summary { min-height: 32px; padding: .35rem 0; width: fit-content; }
 body.conversation-page .conversation-new-message-notice { bottom: calc(var(--conversation-composer-height) + 1rem); position: absolute; z-index: 4; }
 
 @media (max-width: 767.98px) {
@@ -182,13 +192,25 @@ body.conversation-page .conversation-new-message-notice { bottom: calc(var(--con
     body.conversation-page #topbar-second { display: none; }
     body.conversation-page .conversation-view { max-width: none; padding: 0 .75rem; }
     body.conversation-page .conversation-view__header { padding: .7rem 0 .55rem; }
-    body.conversation-page .conversation-view__header p { display: none; }
     body.conversation-page .conversation-view__back { font-size: .82rem; }
     body.conversation-page .conversation-view__actions { margin-top: 0; }
     body.conversation-page .conversation-message { max-width: 91%; }
     body.conversation-page .conversation-composer { margin: 0 -.75rem; padding-left: .75rem; padding-right: .75rem; }
-    body.conversation-page .conversation-composer [contenteditable="true"] { max-height: 30dvh; }
+    body.conversation-page .conversation-composer [contenteditable="true"] { max-height: 22dvh; }
+    body.conversation-page .conversation-composer__markdown-help summary { min-height: 44px; }
+    body.conversation-page .conversation-composer__controls .btn { min-height: 44px; }
+    body.conversation-page .conversation-message { overflow-wrap: anywhere; }
 }
+/* A short viewport (landscape, large text, or an on-screen keyboard) must
+ * remain scrollable instead of squeezing the message feed to a sliver. */
+body.conversation-page.conversation-page--scroll { height: auto; min-height: 100dvh; overflow-y: auto; }
+body.conversation-page--scroll .space-layout-container,
+body.conversation-page--scroll .space-content,
+body.conversation-page--scroll .space-content > .layout-content-container,
+body.conversation-page--scroll .conversation-view { height: auto; }
+body.conversation-page--scroll .conversation-view { overflow: visible; }
+body.conversation-page--scroll .conversation-view__feed { min-height: 50dvh; overflow-y: visible; }
+body.conversation-page--scroll .conversation-new-message-notice { bottom: 1rem; position: fixed; }
 .subconversation-card { background: #f0f7f5; border: 1px solid #c7dfd8; border-radius: .75rem; margin: .55rem 0 1rem; max-width: 92%; padding: .85rem 1rem; }
 .subconversation-card h3 { font-size: 1rem; margin: .15rem 0 .25rem; }
 .subconversation-card h3 a { color: inherit; text-decoration: none; }

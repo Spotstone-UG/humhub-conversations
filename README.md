@@ -13,7 +13,8 @@ It deliberately has no AI, automatic summaries or content screening. AI support 
 - Compact stream card: title, two-line manual summary, space/activity metadata, message count and a personal `X neu` count.
 - Eigene Chat-Seite; Nachrichten erscheinen nicht als Kommentare im Stream.
 - Conversation messages are non-stream `ContentActiveRecord`s. This keeps HumHub's file manager, RichText and (where the core Like module is enabled) reactions usable per message.
-- A sticky message composer with attachments.
+- A compact message composer with attachments; **Formatierung** reveals the native editor toolbar when needed.
+- **V1.22.1:** More room for messages at normal zoom and on phones. The chat description is expandable, the editor starts compact, and short viewports use page scrolling instead of compressing the message area. Viewport changes, including mobile keyboards, trigger a fresh layout calculation.
 - Private `last_seen_message_id` per user and conversation. The view scrolls to the first unread message and renders a divider.
 - Sender-only message status: persisted messages are `✓✓` (published/available); blue `✓✓` means at least one voluntary read receipt exists. Other people never see those ticks.
 - Sender-only `Gelesen von` modal, including the reading time.
