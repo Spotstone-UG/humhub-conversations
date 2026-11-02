@@ -36,6 +36,25 @@ final class ConversationMentionService
             && $user->permissionManager->can(CanMention::class);
     }
 
+    /** Start with Space members; a typed query also searches the whole circle community. */
+    public function suggestions(Space $space, string $keyword, int $limit = 6): array
+    {
+        $keyword = trim($keyword);
+        $queries = [$space->getMemberListService()->getAvailableQuery()->search($keyword)];
+        if ($keyword !== '' && $this->isCircle($space)) {
+            $queries[] = User::find()->available()->search($keyword);
+        }
+        $users = [];
+        foreach ($queries as $query) {
+            foreach ($query->orderBy(['user.last_login' => SORT_DESC, 'user.id' => SORT_ASC])->each(50) as $user) {
+                if (isset($users[$user->id]) || !$user->permissionManager->can(CanMention::class)) { continue; }
+                $users[$user->id] = $user;
+                if (count($users) >= $limit) { return array_values($users); }
+            }
+        }
+        return array_values($users);
+    }
+
     /** Reject forged/out-of-scope mentions as well as restricting autocomplete. */
     public function validate(ConversationMessage $message): void
     {

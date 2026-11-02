@@ -300,13 +300,12 @@ $avatar = static function ($user): string {
             <?= RichTextField::widget([
                 'model' => $composerMessage,
                 'attribute' => 'message',
-                'preset' => 'markdown',
+                'preset' => 'normal',
                 'id' => $composerEditorId,
                 'backupInterval' => 3,
                 'placeholder' => 'Nachricht schreiben …  Mit @ kannst du Menschen erwähnen.',
-                // Global mention search also finds eligible people who have not
-                // chosen to follow this particular chat. HumHub verifies access
-                // again before it delivers the native mention notification.
+                // The normal preset includes interactive @ suggestions.
+                // Start with members; typed circle searches include the community.
                 'mentioningUrl' => $contentContainer->createUrl('/conversations/conversation/mentioning', ['conversationId' => $conversation->id]),
             ]) ?>
             <details class="conversation-composer__markdown-help"><summary>Formatierung</summary><span><code>**fett**</code> · <code>*kursiv*</code> · <code>&gt; Zitat</code> · <code>- Liste</code> · <code>1. Liste</code></span></details>

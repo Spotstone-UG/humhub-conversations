@@ -36,20 +36,14 @@ final class ConversationController extends ContentContainerController
             $this->forbidden();
         }
         $service = new \humhub\modules\conversations\services\ConversationMentionService();
-        $users = $service->candidates($this->contentContainer)
-            ->search((string) Yii::$app->request->get('keyword', ''))
-            ->orderBy(['user.last_login' => SORT_DESC])->limit(20)->all();
+        $users = $service->suggestions($this->contentContainer, (string) Yii::$app->request->get('keyword', ''));
         $results = [];
         foreach ($users as $user) {
-            if (!$user->permissionManager->can(\humhub\modules\user\permissions\CanMention::class)) {
-                continue;
-            }
             $results[] = [
                 'guid' => $user->guid, 'type' => 'u', 'name' => $user->getDisplayName(),
                 'image' => \humhub\modules\user\widgets\Image::widget(['user' => $user, 'width' => 20]),
                 'link' => $user->getUrl(),
             ];
-            if (count($results) === 6) { break; }
         }
         return $this->asJson($results);
     }

@@ -69,6 +69,41 @@
         return composer.querySelector('[contenteditable="true"]') || composer.querySelector('textarea[name="ConversationMessage[message]"]');
     }
 
+    function chatMentionProvider(target) {
+        if (!window.humhub || !target.closest('.conversation-composer, [id^="conversation-message-edit-"]')) { return null; }
+        const widget = window.humhub.require('ui.widget').Widget.closest(target);
+        return widget?.editor?.context?.options?.mention?.provider || widget?.options?.mention?.provider || null;
+    }
+
+    // Limit these adjustments to chat editors, including the edit dialog.
+    document.addEventListener('focusin', function (event) {
+        if (!(event.target instanceof Element)) { return; }
+        const provider = chatMentionProvider(event.target);
+        if (!provider || provider.conversationConfigured) { return; }
+        provider.conversationConfigured = true;
+        provider.options.minInput = 0;
+        const update = provider.update;
+        provider.update = function () {
+            update.apply(this, arguments);
+            const dropdown = this.$container?.[0];
+            const node = this.$node?.[0];
+            if (!dropdown || !node) { return; }
+            const anchor = node.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            dropdown.style.position = 'fixed';
+            dropdown.style.zIndex = '2000';
+            dropdown.style.marginTop = '0';
+            dropdown.style.maxHeight = Math.max(40, Math.min(320, viewportHeight - 16)) + 'px';
+            dropdown.style.overflowY = 'auto';
+            dropdown.style.maxWidth = 'calc(100vw - 16px)';
+            const bounds = dropdown.getBoundingClientRect();
+            const top = anchor.bottom + bounds.height + 8 <= viewportHeight
+                ? anchor.bottom + 4 : anchor.top - bounds.height - 4;
+            dropdown.style.top = Math.max(8, Math.min(top, viewportHeight - bounds.height - 8)) + 'px';
+            dropdown.style.left = Math.max(8, Math.min(anchor.left, window.innerWidth - bounds.width - 8)) + 'px';
+        };
+    }, true);
+
     function editorText(composer) {
         const input = editor(composer);
         if (!input) { return ''; }
@@ -153,6 +188,16 @@
         if (!(target instanceof Element)) { return; }
         const composer = target.closest('.conversation-composer');
         if (!composer || !target.matches('[contenteditable="true"], textarea[name="ConversationMessage[message]"]')) { return; }
+
+        const mentionProvider = chatMentionProvider(target);
+        if (!event.ctrlKey && !event.metaKey && !event.shiftKey && mentionProvider?.state?.active) {
+            // Let HumHub select a suggestion. While loading/empty, never send @text.
+            if (!mentionProvider.$container?.find('.cur').length) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
+            return;
+        }
 
         const sendWithCtrlEnter = composer.dataset.conversationSendWithCtrlEnter === 'true';
         const modifierPressed = event.ctrlKey || event.metaKey;

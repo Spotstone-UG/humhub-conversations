@@ -64,6 +64,14 @@ try {
     verifyCompat($service->isCircle($space), 'Actual governance circle detected');
     verifyCompat($service->canMention($space, $users['outsider']), 'Circle permits community member');
     verifyCompat(!$service->canMention($space, $users['disabled']), 'Disabled account excluded');
+    $initial = $service->suggestions($space, '');
+    verifyCompat(in_array($users['member']->id, array_column($initial, 'id'), false), 'Bare @ suggests members');
+    verifyCompat(!in_array($users['outsider']->id, array_column($initial, 'id'), false), 'Bare @ does not fill list with outsiders');
+    $users['outsider']->updateAttributes(['last_login' => '2030-01-01 00:00:00']);
+    $ranked = $service->suggestions($space, 'mentions-');
+    $rankedIds = array_column($ranked, 'id');
+    verifyCompat(array_search($users['member']->id, $rankedIds) < array_search($users['outsider']->id, $rankedIds), 'Members rank before newer global matches');
+    verifyCompat(count($rankedIds) === count(array_unique($rankedIds)), 'Global search does not duplicate members');
     Yii::$app->request->setQueryParams(['cguid' => $space->guid]);
     $controller = new ConversationController('conversation', Yii::$app->getModule('conversations'));
     Yii::$app->controller = $controller;

@@ -35,6 +35,12 @@ It deliberately has no AI, automatic summaries or content screening. AI support 
 
 ### @-Erwähnungen ab 1.20
 
+Ab 1.20.1 verwenden beide Nachrichteneditoren das normale HumHub-Preset mit
+interaktiver @-Auswahl. Beim Öffnen werden Space-Mitglieder vorgeschlagen; bei
+einer eingegebenen Suche folgen in Kreisen passende Personen aus der gesamten
+Community. Mitglieder stehen zuerst. Enter übernimmt einen geöffneten Vorschlag,
+statt die Nachricht abzuschicken. Das Dropdown bleibt auch am unteren Bildschirmrand sichtbar.
+
 Die Namenssuche im Nachrichteneditor und beim Bearbeiten ist standardmäßig auf
 aktive, sichtbare Space-Mitglieder begrenzt. Ist der Space als Kreis im optionalen
 Modul `sociocratic-governance` registriert (`sg_circle.space_id`), können auch
