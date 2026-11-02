@@ -185,3 +185,7 @@ GitHub Actions also runs PHP linting and the repository-level invariants for PHP
 ## Archivierte Chats (1.18.0)
 
 Die Chatübersichten zeigen standardmäßig nur aktive Chats. Über „Archivierte Chats anzeigen“ öffnet sich das Archiv; Leserechte gelten dort unverändert. Archivierte Chats zählen nicht zum Ungelesen-Zähler. Globale Inhaltsadministratoren und berechtigte Space-Administratoren können Chats über „Archivieren“ und „Wiederherstellen“ verwalten. Es gelten HumHubs `Content::canArchive()`-Rechte und der native Archivstatus; eine Datenbankmigration ist nicht erforderlich. Unterthemen werden unabhängig archiviert. Archivieren verändert weder den Gesprächsabschluss noch das Ergebnis und löscht keine Nachrichten.
+
+## Leseposition beim Öffnen (1.22.2)
+
+Beim Öffnen eines Chats mit ungelesenen Nachrichten und beim Klick auf **Zu neuen Nachrichten** wird die letzte Nachricht vor **Gelesen bis hier** oben im Lesebereich ausgerichtet, auch wenn sie bereits weiter unten sichtbar ist. Tagestrenner werden dabei übersprungen. Direkte Nachrichtenlinks behalten ihr Sprungziel; eigenes Scrollen beendet automatische Nachkorrekturen bei nachgeladenen Bildern oder Layoutänderungen.

@@ -265,7 +265,7 @@
     }
 
     /** Scrolls a message into the part of the viewport that is not covered by the sticky composer. */
-    function scrollIntoReadableArea(target, alignment = 'center', behavior = 'smooth') {
+    function scrollIntoReadableArea(target, alignment = 'center', behavior = 'smooth', alignVisible = false) {
         if (!target) { return; }
         const feed = target.closest('.conversation-view__feed');
         if (feed && !document.body.classList.contains('conversation-page--scroll')) {
@@ -273,7 +273,7 @@
             const targetRect = target.getBoundingClientRect();
             const readableTop = feedRect.top + 12;
             const readableBottom = feedRect.bottom - 12;
-            if (targetRect.top >= readableTop && targetRect.bottom <= readableBottom) { return; }
+            if (!alignVisible && targetRect.top >= readableTop && targetRect.bottom <= readableBottom) { return; }
 
             const availableHeight = Math.max(1, readableBottom - readableTop);
             const visibleTargetHeight = Math.min(targetRect.height, Math.max(1, availableHeight - 24));
@@ -294,7 +294,7 @@
             : window.innerHeight - 12;
         const readableTop = 12;
         const targetRect = target.getBoundingClientRect();
-        if (targetRect.top >= readableTop && targetRect.bottom <= readableBottom) { return; }
+        if (!alignVisible && targetRect.top >= readableTop && targetRect.bottom <= readableBottom) { return; }
 
         const availableHeight = Math.max(1, readableBottom - readableTop);
         const visibleTargetHeight = Math.min(targetRect.height, Math.max(1, availableHeight - 24));
@@ -467,6 +467,16 @@
         open();
     }
 
+    function readingResumeTarget(view, unread) {
+        if (!unread) { return null; }
+        // Date separators may sit between the last read message and the divider.
+        let previous = unread.previousElementSibling;
+        while (previous && !previous.matches('.conversation-message')) {
+            previous = previous.previousElementSibling;
+        }
+        return previous || view.querySelector('[data-conversation-resume]') || unread;
+    }
+
     function initializeReadingPosition() {
         const view = document.querySelector('[data-conversation-live-url]');
         document.body.classList.toggle('conversation-page', Boolean(view));
@@ -475,7 +485,7 @@
         // Explicit links to individual messages keep their own anchor target.
         if (window.location.hash) { return; }
         const unread = view.querySelector('#first-unread-message');
-        const resume = unread ? view.querySelector('[data-conversation-resume]') || unread : null;
+        const resume = readingResumeTarget(view, unread);
         const latest = view.querySelector('.conversation-view__messages > .conversation-message:last-of-type');
         if (!latest) { return; }
         let active = true;
@@ -487,7 +497,7 @@
             if (!active || !view.isConnected || window.location.hash) { return; }
             const feed = view.querySelector('.conversation-view__feed');
             if (resume) {
-                scrollIntoReadableArea(resume, 'start', 'auto');
+                scrollIntoReadableArea(resume, 'start', 'auto', true);
             } else if (feed && !document.body.classList.contains('conversation-page--scroll')) {
                 feed.scrollTo({top: feed.scrollHeight, behavior: 'instant'});
             } else {
@@ -504,6 +514,8 @@
             const observer = new ResizeObserver(schedule);
             const messages = view.querySelector('.conversation-view__messages');
             if (messages) { observer.observe(messages); }
+            const feed = view.querySelector('.conversation-view__feed');
+            if (feed) { observer.observe(feed); }
             const composer = view.querySelector('.conversation-composer');
             if (composer) { observer.observe(composer); }
             window.setTimeout(function () { observer.disconnect(); }, 2500);
@@ -704,8 +716,11 @@
             if (jump) { event.preventDefault(); flashMessage(jump.dataset.conversationJumpMessage); return; }
             const navigation = event.target.closest('[data-conversation-jump]');
             if (navigation) {
-                const target = navigation.dataset.conversationJump === 'unread' ? document.getElementById('first-unread-message') : document.querySelector('.conversation-view__messages > .conversation-message:last-of-type');
-                scrollIntoReadableArea(target, 'end');
+                event.preventDefault();
+                const view = navigation.closest('.conversation-view');
+                const unread = navigation.dataset.conversationJump === 'unread' ? view?.querySelector('#first-unread-message') : null;
+                const target = unread ? readingResumeTarget(view, unread) : view?.querySelector('.conversation-view__messages > .conversation-message:last-of-type');
+                scrollIntoReadableArea(target, unread ? 'start' : 'end', 'smooth', true);
             }
             const filter = event.target.closest('[data-conversation-filter]');
             if (filter) {
