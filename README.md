@@ -33,6 +33,75 @@ It deliberately has no AI, automatic summaries or content screening. AI support 
 
 ## Architecture
 
+### Öffentliche Chats und Relevanz ab 1.22
+
+Für Außenstehende gibt es drei Stufen: **Unsichtbar**, **Öffentlich lesbar** und
+**Öffentlich les- und schreibbar**. Mitglieder behalten die üblichen Space-Rechte.
+Im lesbaren Modus können Außenstehende abonnieren, aber keine Nachrichten,
+Bearbeitungen, Reaktionen oder Konsentbeiträge senden. Schreibbare Chats erlauben
+angemeldeten Außenstehenden Nachrichten und Reaktionen, jedoch keine Chatverwaltung.
+Gäste dürfen niemals schreiben. Private Spaces bleiben geschützt.
+
+Lesbare Chats aus nicht abonnierten Spaces erscheinen unter **Weitere lesbare
+Chats**, sowohl in der Übersicht als auch mit der passenden Governance-Navigation
+auf der Startseite. Ein persönliches Chat-Abonnement verschiebt sie in die eigene
+Liste; zusätzliche, nicht abonnierte Chats erzeugen keinen roten Ungelesen-Zähler.
+Benachrichtigungen gibt es ausschließlich nach Chat-Abonnement oder Erst-Erwähnung,
+auch neu angelegte Chats lösen keine pauschalen Hinweise an alle Space-Mitglieder aus.
+
+Die neue Migration `m261102_090000_add_outsider_writing` ergänzt nur das
+Schreibrecht für Außenstehende. Bestehende öffentliche Chats bleiben lesbar;
+Schreibrechte werden erst durch ausdrückliche Auswahl freigegeben.
+
+### Sichtbarkeit ab 1.21
+
+Im Chatkopf steht dauerhaft „Sichtbar für …“. Personen mit Bearbeitungsrecht können
+über **Ändern** zwischen **Nur Kreismitglieder** und **Alle (auch außerhalb des Kreises)**
+wählen (in gewöhnlichen Spaces entsprechend „Space-Mitglieder“). Die Änderung
+gilt auch für bestehende Nachrichten und ihre angehängten Dateien. Neue Nachrichten
+übernehmen den aktuellen Stand; Unterthemen behalten eine eigene Sichtbarkeit.
+Auch HumHubs native Sichtbarkeitssteuerung synchronisiert die Chat-Nachrichten.
+
+Die Funktion nutzt HumHubs gespeicherte Content-Sichtbarkeit und erweitert keine
+Space-Rechte. In vollständig privaten Spaces ist eine Freigabe nach außen gesperrt.
+In Spaces für angemeldete Personen bedeutet „Alle“ die gesamte Community; in
+öffentlich sichtbaren Spaces kann auch Gastzugriff möglich sein. Der Dialog erklärt
+die jeweilige Bedeutung vor dem Speichern. Administrationsrechte bleiben erhalten.
+Bestehende Sichtbarkeiten werden durch die Installation nicht geändert. Keine neue Migration.
+
+Integrationstest: `HUMHUB_COMPAT_TEST=1 HUMHUB_ROOT=/path/to/humhub php tests/visibility-runtime.php`.
+
+### @-Erwähnungen ab 1.20
+
+Ab 1.20.1 verwenden beide Nachrichteneditoren das normale HumHub-Preset mit
+interaktiver @-Auswahl. Beim Öffnen werden Space-Mitglieder vorgeschlagen; bei
+einer eingegebenen Suche folgen in Kreisen passende Personen aus der gesamten
+Community. Mitglieder stehen zuerst. Enter übernimmt einen geöffneten Vorschlag,
+statt die Nachricht abzuschicken. Das Dropdown bleibt auch am unteren Bildschirmrand sichtbar.
+
+Die Namenssuche im Nachrichteneditor und beim Bearbeiten ist standardmäßig auf
+aktive, sichtbare Space-Mitglieder begrenzt. Ist der Space als Kreis im optionalen
+Modul `sociocratic-governance` registriert (`sg_circle.space_id`), können auch
+Personen aus der übrigen Community erwähnt werden. Persönliche Erwähnungsrechte,
+Blockierungen und Profil-Sichtbarkeit bleiben wirksam. Dieselbe Begrenzung wird
+beim Speichern geprüft; eingefügte Erwähnungslinks umgehen sie nicht.
+
+Bei der ersten Erwähnung einer Person **pro Chat** erhält sie HumHubs native
+„Du wurdest erwähnt“-Benachrichtigung und folgt dem gesamten Chat. Spätere
+Nachrichten, Bearbeitungen, Löschungen sowie Änderungen an Thema, Beschreibung,
+Ergebnis oder Abschlussstatus erzeugen Chat-Hinweise. Wiederholte Erwähnungen und
+Bearbeitungen senden keine erneute Erstbenachrichtigung. Die Glocke erlaubt es,
+Hinweise wieder auszuschalten; spätere Erwähnungen schalten sie nicht wieder ein.
+
+Erwähnen vergibt keine Mitgliedschaft oder Leserechte: Außenstehende können in
+Kreisen ausgewählt werden, erhalten bei privaten, für sie unlesbaren Inhalten
+aber weder eine Benachrichtigung noch ein automatisches Abonnement. Bestehende
+Chats und Nachrichten werden nicht rückwirkend verarbeitet. Es ist keine neue
+Datenbankmigration notwendig.
+
+Zusätzlicher Integrationstest (nur lokale, entbehrliche Testdatenbank):
+`HUMHUB_COMPAT_TEST=1 HUMHUB_ROOT=/path/to/humhub php tests/mentions-runtime.php`.
+
 ```text
 Conversation (ContentActiveRecord, normal Stream entry)
   ├── parent_conversation_id / origin_message_id  linked Unterthema (no Stream entry)

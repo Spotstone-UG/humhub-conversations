@@ -12,6 +12,7 @@ return [
     'class' => \humhub\modules\conversations\Module::class,
     'namespace' => 'humhub\modules\conversations',
     'events' => [
+        ['class' => \humhub\modules\content\models\Content::class, 'event' => \humhub\modules\content\models\Content::EVENT_AFTER_UPDATE, 'callback' => [Events::class, 'onContentVisibilityChanged']],
         ['class' => AccountMenu::class, 'event' => AccountMenu::EVENT_INIT, 'callback' => [Events::class, 'onAccountMenuInit']],
         ['class' => TopMenu::class, 'event' => TopMenu::EVENT_INIT, 'callback' => [Events::class, 'onTopMenuInit']],
         ['class' => SpaceMenu::class, 'event' => SpaceMenu::EVENT_INIT, 'callback' => [Events::class, 'onSpaceMenuInit']],

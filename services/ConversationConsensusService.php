@@ -77,7 +77,8 @@ final class ConversationConsensusService
             $status = 'confirmed_timeout';
         }
 
-        $isParticipant = $currentUser !== null && in_array((int) $currentUser->id, $participantIds, true);
+        $isParticipant = $currentUser !== null && in_array((int) $currentUser->id, $participantIds, true)
+            && (new ConversationVisibilityService())->canParticipate($conversation, $currentUser);
         $participantResponses = [];
         foreach ($participants as $participant) {
             $response = $responseModels[(int) $participant->id] ?? null;
@@ -180,6 +181,7 @@ final class ConversationConsensusService
      */
     public function reopenWithObjection(Conversation $conversation, User $user, string $reason): void
     {
+        if (!(new ConversationVisibilityService())->canParticipate($conversation, $user)) { throw new ForbiddenHttpException(); }
         if (!$conversation->isClosed || !$conversation->content->canView($user)) {
             throw new ForbiddenHttpException();
         }

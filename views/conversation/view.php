@@ -18,6 +18,8 @@ use humhub\modules\user\widgets\Image as UserImage;
 ConversationAsset::register($this);
 $stateService = new ConversationStateService();
 $currentUser = Yii::$app->user->identity;
+$visibilityLabels = (new \humhub\modules\conversations\services\ConversationVisibilityService())->labels($conversation);
+$visibilityLabel = $visibilityLabels[(new \humhub\modules\conversations\services\ConversationVisibilityService())->mode($conversation)];
 $uploads = Upload::withName('fileList[]');
 $composerMessage = new \humhub\modules\conversations\models\ConversationMessage($contentContainer);
 $composerEditorId = 'conversation-message-editor-' . (int) $conversation->id;
@@ -25,8 +27,8 @@ $sendWithCtrlEnter = ConversationUserSetting::sendWithCtrlEnter($currentUser);
 $reactionSummaries = (new ConversationReactionService())->summaries($messages, $currentUser);
 $realtimeConnection = (new ConversationRealtimeService())->socketConnection($conversation, $currentUser);
 $interestTooltip = $isInterested
-    ? 'Dieser Chat interessiert dich. Klicken, um laufende Hinweise auszuschalten.'
-    : 'Dieser Chat interessiert dich nicht. Klicken, um laufende Hinweise einzuschalten.';
+    ? 'Du erhältst laufende Chat-Hinweise. Klicken, um sie auszuschalten.'
+    : 'Chat-Hinweise sind ausgeschaltet. Klicken, um sie einzuschalten.';
 $avatar = static function ($user): string {
     // The core widget owns status visibility and privacy. When HumHub's
     // online-status provider is absent or disabled, it renders a normal avatar.
@@ -44,13 +46,23 @@ $avatar = static function ($user): string {
 <section class="conversation-view" data-conversation-live-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-state', ['conversationId' => $conversation->id])) ?>" data-conversation-live-messages-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/live-messages', ['conversationId' => $conversation->id])) ?>" data-conversation-typing-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/typing', ['conversationId' => $conversation->id])) ?>" data-conversation-typing-state-url="<?= Html::encode($contentContainer->createUrl('/conversations/conversation/typing-state', ['conversationId' => $conversation->id])) ?>" data-conversation-latest-message-id="<?= (int) $latestMessageId ?>"<?php if ($realtimeConnection !== null): ?> data-conversation-realtime-url="<?= Html::encode($realtimeConnection['url']) ?>" data-conversation-realtime-token="<?= Html::encode($realtimeConnection['token']) ?>"<?php endif; ?>>
     <header class="conversation-view__header">
         <div class="conversation-view__heading">
-            <?php if ($conversation->parentConversation !== null): ?>
+            <?php if ($conversation->parentConversation !== null && $conversation->parentConversation->content->canView($currentUser)): ?>
                 <?= Html::a('← Zur Hauptkonversation: ' . Html::encode($conversation->parentConversation->title), $conversation->parentConversation->url, ['class' => 'conversation-view__back']) ?>
             <?php else: ?>
                 <?= Html::a('← ' . Html::encode($contentContainer->displayName), $contentContainer->createUrl('/conversations/conversation/index'), ['class' => 'conversation-view__back']) ?>
             <?php endif; ?>
             <h1><?= Html::encode($conversation->title) ?></h1>
             <?php if ($conversation->summary): ?><p><?= Html::encode($conversation->summary) ?></p><?php endif; ?>
+            <div class="conversation-visibility">
+                <span><i class="fa <?= $conversation->content->isPublic() ? 'fa-globe' : 'fa-lock' ?>" aria-hidden="true"></i> Sichtbar für: <?= Html::encode($visibilityLabel) ?></span>
+                <?php if ($conversation->content->canEdit()): ?>
+                    <?= Html::a('Ändern', '#', [
+                        'class' => 'conversation-visibility__change', 'data-action-click' => 'ui.modal.load',
+                        'data-action-url' => $contentContainer->createUrl('/conversations/conversation/visibility', ['conversationId' => $conversation->id]),
+                        'aria-label' => 'Sichtbarkeit des Chats ändern',
+                    ]) ?>
+                <?php endif; ?>
+            </div>
         </div>
         <div class="conversation-view__actions">
             <?php if ($conversation->content->archived): ?><span class="conversation-status">Archiviert</span><?php endif; ?>
@@ -151,7 +163,7 @@ $avatar = static function ($user): string {
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
-            <?php if (!Yii::$app->user->isGuest): ?>
+            <?php if ($canParticipate): ?>
                 <?= Html::a('Schwerwiegenden Einwand einbringen und Chat wieder öffnen', '#', [
                     'class' => 'conversation-outcome__reopen btn btn-danger btn-sm',
                     'data-action-click' => 'ui.modal.load',
@@ -238,7 +250,7 @@ $avatar = static function ($user): string {
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>
-                <?php if (!$message->isDeleted): ?>
+                <?php if (!$message->isDeleted && $canWrite): ?>
                 <div class="conversation-message__actions">
                     <?= Html::a('Antworten', '#conversation-composer-' . (int) $conversation->id, [
                         'class' => 'conversation-message__reply-trigger',
@@ -266,6 +278,7 @@ $avatar = static function ($user): string {
                                     'title' => $reactionTitle,
                                     'aria-label' => $reaction['emoji'] . ': ' . str_replace("\n", ' ', $reactionTitle),
                                     'aria-pressed' => $reaction['mine'] ? 'true' : 'false',
+                                    'disabled' => !$canWrite,
                                     'data-reaction-users' => \yii\helpers\Json::encode($reaction['users']),
                                     'data-reaction-action' => $reaction['mine'] ? 'Eigene Reaktion entfernen' : 'Auch so reagieren',
                                 ]) ?>
@@ -292,7 +305,10 @@ $avatar = static function ($user): string {
     <div class="conversation-typing" data-conversation-typing hidden aria-live="polite"></div>
     </div>
 
-    <?php if (!$conversation->isClosed): ?>
+    <?php if (!$conversation->isClosed && !$canWrite): ?>
+        <p class="conversation-read-only"><i class="fa fa-eye" aria-hidden="true"></i> Du kannst diesen Chat mitlesen und abonnieren. Schreiben können hier nur Space-Mitglieder.</p>
+    <?php endif; ?>
+    <?php if (!$conversation->isClosed && $canWrite): ?>
         <?= Html::beginForm($contentContainer->createUrl('/conversations/conversation/message', ['conversationId' => $conversation->id]), 'post', ['class' => 'conversation-composer', 'id' => 'conversation-composer-' . (int) $conversation->id, 'data-conversation-draft-key' => 'conversation-draft-' . (int) $conversation->id, 'data-conversation-editor-id' => $composerEditorId, 'data-conversation-send-with-ctrl-enter' => $sendWithCtrlEnter ? 'true' : 'false']) ?>
             <div class="conversation-composer__reply" hidden data-conversation-reply-preview></div>
             <?= Html::hiddenInput('ConversationMessage[reply_to_message_id]', '', ['data-conversation-reply-input' => true]) ?>
@@ -300,14 +316,13 @@ $avatar = static function ($user): string {
             <?= RichTextField::widget([
                 'model' => $composerMessage,
                 'attribute' => 'message',
-                'preset' => 'markdown',
+                'preset' => 'normal',
                 'id' => $composerEditorId,
                 'backupInterval' => 3,
                 'placeholder' => 'Nachricht schreiben …  Mit @ kannst du Menschen erwähnen.',
-                // Global mention search also finds eligible people who have not
-                // chosen to follow this particular chat. HumHub verifies access
-                // again before it delivers the native mention notification.
-                'mentioningUrl' => '/user/mentioning',
+                // The normal preset includes interactive @ suggestions.
+                // Start with members; typed circle searches include the community.
+                'mentioningUrl' => $contentContainer->createUrl('/conversations/conversation/mentioning', ['conversationId' => $conversation->id]),
             ]) ?>
             <details class="conversation-composer__markdown-help"><summary>Formatierung</summary><span><code>**fett**</code> · <code>*kursiv*</code> · <code>&gt; Zitat</code> · <code>- Liste</code> · <code>1. Liste</code></span></details>
             <div class="conversation-composer__controls">

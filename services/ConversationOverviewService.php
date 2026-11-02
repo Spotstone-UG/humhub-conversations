@@ -6,6 +6,7 @@ namespace humhub\modules\conversations\services;
 use humhub\modules\conversations\models\Conversation;
 use humhub\modules\conversations\models\ConversationMessage;
 use humhub\modules\conversations\models\ConversationMutedSpace;
+use humhub\modules\conversations\models\ConversationInterest;
 use humhub\modules\space\models\Space;
 use humhub\modules\user\models\User;
 use yii\db\Expression;
@@ -26,18 +27,26 @@ final class ConversationOverviewService
             ->orderBy(['conversation.last_message_at' => SORT_DESC, 'conversation.id' => SORT_DESC])
             ->all();
         $mutedSpaceIds = $this->mutedSpaceIds($user);
+        $interestIds = array_fill_keys(array_map('intval', ConversationInterest::find()->select('conversation_id')->where(['user_id' => $user->id])->column()), true);
+        $relevantSpaces = [];
 
         $groups = [];
         foreach ($all as $conversation) {
             $space = $conversation->content->container;
-            if (!$space instanceof Space) {
+            if (!$space instanceof Space || $space->isBlockedForUser($user)) {
                 continue;
             }
 
-            if (!isset($groups[$space->id])) {
-                $groups[$space->id] = ['space' => $space, 'items' => [], 'isMuted' => isset($mutedSpaceIds[(int) $space->id])];
+            $spaceId = (int) $space->id;
+            if (!array_key_exists($spaceId, $relevantSpaces)) {
+                $relevantSpaces[$spaceId] = $space->isMember($user->id) || $space->isFollowedByUser($user);
             }
-            $groups[$space->id]['items'][] = $conversation;
+            $relevant = $relevantSpaces[$spaceId] || isset($interestIds[(int) $conversation->id]);
+            $key = $relevant ? $spaceId : $spaceId . ':additional';
+            if (!isset($groups[$key])) {
+                $groups[$key] = ['space' => $space, 'items' => [], 'isMuted' => isset($mutedSpaceIds[$spaceId]), 'isRelevant' => $relevant];
+            }
+            $groups[$key]['items'][] = $conversation;
         }
 
         uasort($groups, static fn(array $left, array $right): int => strnatcasecmp($left['space']->displayName, $right['space']->displayName));
@@ -82,7 +91,7 @@ final class ConversationOverviewService
     {
         $total = 0;
         foreach ($this->groupedBySpace($user) as $group) {
-            if (!$group['isMuted']) {
+            if (!$group['isMuted'] && ($group['isRelevant'] ?? true)) {
                 $total += array_sum($group['unreadCounts']);
             }
         }

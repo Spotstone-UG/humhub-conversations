@@ -60,9 +60,13 @@ final class ChatNotification extends BaseNotification
         $actor = $this->originator ? Html::encode($this->originator->displayName) : 'Das System';
         $chat = $this->source instanceof ConversationMessage ? $this->source->conversation : $this->source;
         $title = $chat instanceof Conversation ? Html::encode($chat->title) : '';
-        $label = ($this->payload['eventType'] ?? $this->eventType) === 'created'
-            ? 'hat einen neuen Chat gestartet:'
-            : 'hat eine neue Nachricht geschrieben in:';
+        $label = match ($this->payload['eventType'] ?? $this->eventType) {
+            'created' => 'hat einen neuen Chat gestartet:',
+            'edited' => 'hat eine Nachricht bearbeitet in:',
+            'deleted' => 'hat eine Nachricht gelöscht in:',
+            'changed' => 'hat den Chat aktualisiert:',
+            default => 'hat eine neue Nachricht geschrieben in:',
+        };
         return '<strong>' . $actor . '</strong> ' . Html::encode($label) . ' <strong>' . $title . '</strong>.';
     }
 

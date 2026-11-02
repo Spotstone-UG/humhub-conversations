@@ -8,7 +8,7 @@ use humhub\modules\conversations\models\ConversationInterest;
 use humhub\modules\user\models\User;
 use Yii;
 
-/** Keeps ongoing chat notices opt-in instead of turning every Space member into a follower. */
+/** Chat notices follow explicit interest or a first @ mention, never all Space members. */
 final class ConversationInterestService
 {
     public function isInterested(Conversation $conversation, User $user): bool
