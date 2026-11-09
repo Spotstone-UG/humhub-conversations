@@ -330,6 +330,11 @@
         items.slice(firstNewIndex).forEach(function (item) {
             const clone = document.importNode(item, true);
             targetMessages.appendChild(clone);
+            // Raw RichText markup from fetch needs the same widget lifecycle as
+            // a full page load (emoji, Markdown, mentions and embedded media).
+            if (window.humhub && typeof window.humhub.require === 'function') {
+                window.humhub.require('ui.additions').applyTo(clone);
+            }
             if (clone.classList.contains('conversation-message')) { appended.push(clone); }
         });
         const latestId = source.dataset.conversationLatestMessageId;

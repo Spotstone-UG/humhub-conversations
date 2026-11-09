@@ -1,5 +1,9 @@
 # Tests
 
+`node tests/live-richtext.test.cjs` checks widget initialization for live delivery,
+including initialization after DOM insertion, rendering before scroll placement,
+scrolled-away readers and repeated delivery without resetting existing widgets.
+
 `php tests/unicode-storage-runtime.php /path/to/humhub` checks native Unicode emoji,
 skin tones, joined emoji, umlauts and existing emoji shortcodes through save, edit
 and both history fields. It copies the installed column definitions to

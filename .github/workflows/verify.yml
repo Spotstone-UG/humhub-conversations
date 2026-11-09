@@ -44,3 +44,4 @@ jobs:
           node tests/reading-position.test.cjs
           node tests/reply-click.test.cjs
           node tests/reaction-details.test.cjs
+          node tests/live-richtext.test.cjs

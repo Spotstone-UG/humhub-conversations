@@ -4,6 +4,16 @@ Ein eigenständiges Modul für **HumHub Community Edition 1.18.5**. Es ergänzt 
 
 > Im Stream überblicken. Im Chat schreiben.
 
+## 1.22.4 – Emoji-Darstellung in live nachgeladenen Nachrichten
+
+Live nachgeladene Nachrichten initialisieren jetzt HumHubs Text-Widgets direkt
+nach dem Einfügen. Dadurch werden Emoji-Kürzel wie `:grinning face::red heart:`
+und `:raising hands:` sowie Markdown und Erwähnungen wie beim vollständigen
+Seitenaufruf dargestellt. Vorhandene Nachrichten und der Nachrichteneditor werden
+dabei nicht neu initialisiert. Der Speicher-Fix aus 1.22.3 bleibt enthalten.
+Bereits geöffnete Chats nach dem Update einmal neu laden, um das neue JavaScript
+zu laden. Es ist keine zusätzliche Datenbankmigration erforderlich.
+
 ## 1.22.3 – Unicode-Emojis in Chatnachrichten
 
 Echte Unicode-Emojis, etwa von der Handy-Tastatur, bleiben beim Speichern und
