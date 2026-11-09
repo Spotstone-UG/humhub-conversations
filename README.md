@@ -4,6 +4,16 @@ Ein eigenständiges Modul für **HumHub Community Edition 1.18.5**. Es ergänzt 
 
 > Im Stream überblicken. Im Chat schreiben.
 
+## 1.22.3 – Unicode-Emojis in Chatnachrichten
+
+Echte Unicode-Emojis, etwa von der Handy-Tastatur, bleiben beim Speichern und
+Bearbeiten erhalten. Die Update-Migration stellt Nachrichten und beide Textfelder
+des Bearbeitungsverlaufs unter MySQL/MariaDB auf `utf8mb4` um. Bestehende
+Emoji-Textkürzel funktionieren weiterhin. Bereits als Fragezeichen gespeicherte
+Zeichen können damit nicht wiederhergestellt werden. Vor dem Update die Datenbank
+sichern; die Migration ist absichtlich nicht auf `utf8mb3` zurückrollbar, da dies
+erneut Zeichen verlieren könnte.
+
 It deliberately has no AI, automatic summaries or content screening. AI support remains a future product decision, not a hidden dependency.
 
 ## What is implemented

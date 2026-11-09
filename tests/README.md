@@ -1,5 +1,11 @@
 # Tests
 
+`php tests/unicode-storage-runtime.php /path/to/humhub` checks native Unicode emoji,
+skin tones, joined emoji, umlauts and existing emoji shortcodes through save, edit
+and both history fields. It copies the installed column definitions to
+connection-local temporary tables and never modifies persistent chat records.
+Run after applying the module migrations; on the old utf8mb3 schema it fails.
+
 `php tests/run.php` validates the repository layout and privacy-critical invariants without a HumHub installation.
 
 `HUMHUB_ROOT=/path/to/humhub php tests/compatibility.php` checks that the HumHub 1.18.5 extension points used by this module are present. It does not write to that installation.
