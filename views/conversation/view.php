@@ -18,6 +18,7 @@ use humhub\modules\user\widgets\Image as UserImage;
 ConversationAsset::register($this);
 $stateService = new ConversationStateService();
 $currentUser = Yii::$app->user->identity;
+$canStartSubconversation = $canWrite && (new \humhub\modules\conversations\models\Conversation($contentContainer))->content->canEdit();
 $visibilityLabels = (new \humhub\modules\conversations\services\ConversationVisibilityService())->labels($conversation);
 $visibilityLabel = $visibilityLabels[(new \humhub\modules\conversations\services\ConversationVisibilityService())->mode($conversation)];
 $uploads = Upload::withName('fileList[]');
@@ -199,13 +200,14 @@ $avatar = static function ($user): string {
                 <div class="conversation-unread-divider" id="first-unread-message" role="separator" aria-label="Gelesen bis hier">──── Gelesen bis hier ────</div>
             <?php endif; ?>
             <?php $isOwn = (int) $message->content->created_by === (int) $currentUser->id; ?>
+            <?php $showMessageMenu = !$message->isDeleted && (($isOwn && $canParticipate) || $canStartSubconversation); ?>
             <?php $mentionsCurrentUser = Mentioning::find()->where(['object_model' => $message::class, 'object_id' => $message->id, 'user_id' => $currentUser->id])->exists(); ?>
             <article class="conversation-message <?= $isOwn ? 'conversation-message--own' : '' ?> <?= $message->isDeleted ? 'conversation-message--deleted' : '' ?>" id="conversation-message-<?= $message->id ?>" data-conversation-reply-id="<?= $message->id ?>" data-conversation-reply-author="<?= Html::encode($message->content->createdBy->displayName) ?>" data-conversation-reply-excerpt="<?= Html::encode(mb_strimwidth(strip_tags((string) $message->message), 0, 120, '…')) ?>"<?= $lastSeenMessageId !== null && (int) $message->id === (int) $lastSeenMessageId ? ' data-conversation-resume' : '' ?>>
                 <div class="conversation-message__author">
                     <span class="conversation-avatar"><?= $avatar($message->content->createdBy) ?></span>
                     <span><?= Html::encode($message->content->createdBy->displayName) ?></span>
                 </div>
-                <div class="conversation-message__bubble <?= !$message->isDeleted && $conversation->content->canEdit() ? 'conversation-message__bubble--has-menu' : '' ?>">
+                <div class="conversation-message__bubble <?= $showMessageMenu ? 'conversation-message__bubble--has-menu' : '' ?>">
                     <?php if ($message->replyToMessage !== null): ?>
                         <a class="conversation-message__reply-preview" href="#conversation-message-<?= $message->replyToMessage->id ?>" data-conversation-jump-message="conversation-message-<?= $message->replyToMessage->id ?>">
                             <strong><?= Html::encode($message->replyToMessage->content->createdBy->displayName) ?></strong>
@@ -218,16 +220,18 @@ $avatar = static function ($user): string {
                         <div class="conversation-message__content"><?= RichText::output($message->message, ['record' => $message]) ?></div>
                         <?= ShowFiles::widget(['object' => $message]) ?>
                     <?php endif; ?>
-                    <?php if (!$message->isDeleted && $conversation->content->canEdit()): ?>
+                    <?php if ($showMessageMenu): ?>
                         <span class="dropdown conversation-message__menu">
                             <?= Html::a('⋮', '#', ['class' => 'conversation-message__menu-trigger', 'data-bs-toggle' => 'dropdown', 'role' => 'button', 'aria-label' => 'Optionen für Nachricht', 'title' => 'Optionen']) ?>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                <?php if ($canStartSubconversation): ?>
                                 <li><?= Html::a('Unterthema beginnen', '#', [
                                     'class' => 'dropdown-item',
                                     'data-action-click' => 'ui.modal.load',
                                     'data-action-url' => $contentContainer->createUrl('/conversations/conversation/start-subconversation', ['conversationId' => $conversation->id, 'messageId' => $message->id]),
                                 ]) ?></li>
-                                <?php if ($isOwn): ?>
+                                <?php endif; ?>
+                                <?php if ($isOwn && $canParticipate): ?>
                                     <li><?= Html::a('Bearbeiten', '#', [
                                         'class' => 'dropdown-item',
                                         'data-action-click' => 'ui.modal.load',

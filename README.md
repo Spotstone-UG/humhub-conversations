@@ -4,6 +4,15 @@ Ein eigenständiges Modul für **HumHub Community Edition 1.18.5**. Es ergänzt 
 
 > Im Stream überblicken. Im Chat schreiben.
 
+## 1.22.5 – Nachrichtenmenü für normale Mitglieder
+
+Das Drei-Punkte-Menü richtet sich nach den erlaubten Nachrichtenaktionen statt
+nach dem Bearbeitungsrecht für den gesamten Chat. Teilnehmende können ihre eigenen
+Nachrichten bearbeiten und löschen, auch wenn jemand anderes den Chat erstellt
+hat. „Unterthema beginnen“ erscheint nur bei Schreibrecht im offenen Chat und
+Berechtigung zum Erstellen eines Chats. Fremde Nachrichten bleiben vor Bearbeitung
+und Löschung geschützt. Es ist keine zusätzliche Migration erforderlich.
+
 ## 1.22.4 – Emoji-Darstellung in live nachgeladenen Nachrichten
 
 Live nachgeladene Nachrichten initialisieren jetzt HumHubs Text-Widgets direkt

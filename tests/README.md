@@ -1,5 +1,10 @@
 # Tests
 
+`php tests/message-menu-runtime.php /path/to/testcommunity.selbstsein.events`
+renders the real chat view for an ordinary participant without chat-editing rights.
+It checks own versus foreign messages, closed chats and deleted messages. All test
+database changes are rolled back. A second argument can select a staged view.
+
 `node tests/live-richtext.test.cjs` checks widget initialization for live delivery,
 including initialization after DOM insertion, rendering before scroll placement,
 scrolled-away readers and repeated delivery without resetting existing widgets.
